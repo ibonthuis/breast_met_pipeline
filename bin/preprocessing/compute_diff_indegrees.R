@@ -1,7 +1,8 @@
 ### Loading libraries
 required_libraries <- c(
     "data.table",     ## Many (gg)plots in the same frame
-    "tidyverse",
+    #"tidyverse",
+    "dplyr",
     "optparse",
     "limma",
     "rlang")
@@ -67,9 +68,10 @@ diff_indegree_df <- create_toptable_paired(indegree_df, metadata_df, "patient", 
 ## Exporting
 save(
     diff_indegree_df,
-    file.path(OUTPUT_DIR, "differential_indegrees.RData"))
+    file = file.path(OUTPUT_DIR, "differential_indegrees.RData"))
 data.table::fwrite(
     diff_indegree_df,
     file = file.path(OUTPUT_DIR, "differential_indegrees.tsv"),
     sep = "\t",
-    col.names = TRUE)
+    col.names = TRUE,
+    row.names = TRUE)
