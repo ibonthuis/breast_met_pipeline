@@ -6,6 +6,7 @@ bin: "bin"
 data_dir: "data"
 metadata_file: "data/geo_brca/metadata.csv"
 indegree_file: "data/geo_brca/filtered_cos_indegree.csv"
+visualisation_var: "sample_type"
 
 ## Results directory:
 output_dir: "snakemake_results"
