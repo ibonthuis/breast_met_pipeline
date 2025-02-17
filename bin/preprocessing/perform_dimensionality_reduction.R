@@ -3,8 +3,8 @@ required_libraries <- c(
     "data.table",    
     "dplyr",
     "optparse",
-    "limma",
-    "rlang")
+    "rlang",
+    "ggplot2")
 
 for (lib in required_libraries) {
   suppressPackageStartupMessages(library(lib, character.only = TRUE, quietly = TRUE))
@@ -29,6 +29,12 @@ option_list <- list(
         help = "Path to the metadata file.",
         metavar = "character"),
     optparse::make_option(
+        c("-v", "--visualization_var"),
+        type = "character",
+        default = NULL,
+        help = "Variable to visualize, one of the column names of the metadata",
+        metavar = "character"),
+    optparse::make_option(
         c("-o", "--output_dir"),
         type = "character",
         default = NULL,
@@ -43,6 +49,7 @@ opt <- optparse::parse_args(opt_parser)
 METADATA_FILE <- opt$metadata
 INDEGREES_FILE <- opt$indegrees
 OUTPUT_DIR <- opt$output_dir
+VARIABLE <- opt$visualization_var
 
 ## Debug
 # INDEGREES_FILE <- "data/geo_brca/filtered_cos_indegree.csv"
@@ -51,26 +58,35 @@ OUTPUT_DIR <- opt$output_dir
 
 
 ## Functions
-source("bin/preprocessing/compute_diff_indegrees_fn.R")
+source("bin/preprocessing/perform_dimensionality_reduction_fn.R")
 
 ## Create output directory
 dir.create(OUTPUT_DIR, showWarnings = FALSE, recursive = TRUE)
 
-## Computing
+## Dimensionality reduction
 indegree_df <- read_indegree(INDEGREES_FILE)
-metadata_df <- read_and_match_metadata(
-    METADATA_FILE,
-    indegree_df)
+metadata_df <- fread(METADATA_FILE)
+metadata_df <- match_metadata_order_with_df(metadata_df, indegree_df)
 
-diff_indegree_df <- create_toptable_paired(indegree_df, metadata_df, "patient", "sample_type")
+## Plotting
+standard_colors <- RColorBrewer::brewer.pal(8, "Set1")
+the_theme <- ggplot2::theme_set(
+    theme_bw() +
+        theme(
+            plot.title = element_text(size = 28),
+            text = element_text(size = 26, colour = "black"),
+            axis.title = element_text(size = 28, colour = "black"),
+            axis.text = element_text(size = 18, colour = "black"),
+            legend.title = element_text(size = 28, colour = "black"),
+            legend.text = element_text(size = 26, colour = "black"),
+            
+        )
+)
+pca <- do_pca(indegree_df)
+pcaplot <- plot_12_discrete(pca, metadata_df, VARIABLE)
 
 ## Exporting
-save(
-    diff_indegree_df,
-    file = file.path(OUTPUT_DIR, "differential_indegrees.RData"))
-data.table::fwrite(
-    diff_indegree_df,
-    file = file.path(OUTPUT_DIR, "differential_indegrees.tsv"),
-    sep = "\t",
-    col.names = TRUE,
-    row.names = TRUE)
+pdf(pcaplot, 
+    file.path(OUTPUT_DIR, 
+    paste0("PCA", VARIABLE, "pc12.pdf"))
+    )
