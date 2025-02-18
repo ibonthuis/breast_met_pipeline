@@ -58,11 +58,14 @@ dir.create(OUTPUT_DIR, showWarnings = FALSE, recursive = TRUE)
 
 ## Computing
 indegree_df <- read_indegree(INDEGREES_FILE)
-metadata_df <- read_and_match_metadata(
-    METADATA_FILE,
+metadata_df <- data.table::fread(METADATA_FILE)
+metadata_df <- match_metadata(
+    metadata_df,
     indegree_df)
 
 diff_indegree_df <- create_toptable_paired(indegree_df, metadata_df, "patient", "sample_type")
+ranked_indegree_df <- as.data.frame(diff_indegree_df[, c("t")])
+rownames(ranked_indegree_df) <- rownames(diff_indegree_df)
 
 ## Exporting
 save(
@@ -73,4 +76,10 @@ data.table::fwrite(
     file = file.path(OUTPUT_DIR, "differential_indegrees.tsv"),
     sep = "\t",
     col.names = TRUE,
+    row.names = TRUE)
+data.table::fwrite(
+    ranked_indegree_df,
+    file = file.path(OUTPUT_DIR, "differential_indegrees.rnk"),
+    sep = "\t",
+    col.names = FALSE,
     row.names = TRUE)

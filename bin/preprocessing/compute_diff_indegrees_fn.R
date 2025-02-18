@@ -34,12 +34,11 @@ read_indegree <- function(indegree_file) {
 #' metadata <- read_and_match_metadata("path/to/metadata_file.csv", indegree_df)
 #' 
 #' @export
-read_and_match_metadata <- function(metadata_file, indegree_df) {
-    metadata <- data.table::fread(metadata_file)
-    if (!all(colnames(indegree_df) %in% metadata$sample_name)) {
+match_metadata <- function(metadata_df, indegree_df) {
+    if (!all(colnames(indegree_df) %in% metadata_df$sample_name)) {
         stop("column names of indegree_df don't match sample_name")
     }
-    metadata_ordered <- metadata[match(colnames(indegree_df), metadata$sample_name), ]
+    metadata_ordered <- metadata_df[match(colnames(indegree_df), metadata_df$sample_name), ]
     return(metadata_ordered)
 }
 
