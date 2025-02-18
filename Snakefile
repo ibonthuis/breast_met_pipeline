@@ -37,7 +37,9 @@ PCA_PLOT_PDF = os.path.join(DIMENSIONALITY_REDUCTION_OUTPUT_DIR, "pc12.pdf") # I
 rule all:
     input:
         DIFFERENTIAL_INDEGREES_TAB, \
-        DIFFERENTIAL_INDEGREES_RDATA
+        DIFFERENTIAL_INDEGREES_RDATA, \
+        DIFFERENTIAL_INDEGREES_RANKED, \
+        PCA_PLOT_PDF
 
 ## Rules ##
 
@@ -63,7 +65,8 @@ rule compute_differential_indegrees:
         indegrees = INPUT_INDEGREES
     output:
         DIFFERENTIAL_INDEGREES_TAB, \
-        DIFFERENTIAL_INDEGREES_RDATA
+        DIFFERENTIAL_INDEGREES_RDATA \
+        DIFFERENTIAL_INDEGREES_RANKED
     message:
         "; Running differential indegree computation on {input}."
     params:
