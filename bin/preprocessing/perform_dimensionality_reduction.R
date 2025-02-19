@@ -86,7 +86,9 @@ pca <- do_pca(indegree_df)
 pcaplot <- plot_12_discrete(pca, metadata_df, VARIABLE)
 
 ## Exporting
-pdf(pcaplot, 
+pdf( 
     file.path(OUTPUT_DIR, 
-    paste0("PCA", VARIABLE, "pc12.pdf"))
+    paste0("PCA_", VARIABLE, "_pc12.pdf"))
     )
+pcaplot
+dev.off()
