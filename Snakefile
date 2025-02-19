@@ -14,32 +14,39 @@ global CONFIG_PATH
 CONFIG_PATH = "config.yaml"
 configfile: CONFIG_PATH
 
+## Container
+# container: config["container"]
+# print("\n; Available container:\n %s" % config["container"])
+
 ## Directories
 DATA_DIR = config["data_dir"]
+DATASET_NAMES = config["types"]
 BASE_OUTPUT_DIR = config["output_dir"]
 DIFFERENTIAL_INDEGREE_OUTPUT_DIR = os.path.join(BASE_OUTPUT_DIR, "differential_indegrees")
 DIMENSIONALITY_REDUCTION_OUTPUT_DIR = os.path.join(BASE_OUTPUT_DIR, "dimensionality_reduction")
 
 ## Input files ##
-INPUT_METADATA = config["metadata_file"]
-INPUT_INDEGREES = config["indegree_file"]
+INPUT_METADATA = os.path.join(DATA_DIR, "{dataset_type}", "metadata.csv")
+INPUT_INDEGREES = os.path.join(DATA_DIR, "{dataset_type}", "filtered_indegree.csv")
 VIS_VAR = config["visualisation_var"]
+GENE_SET_FILE = config["gene_set_file"]
 
-# ## Output files ##
-# DIFFERENTIAL_INDEGREES_TAB = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "differential_indegrees.tsv")
-# DIFFERENTIAL_INDEGREES_RDATA = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "differential_indegrees.RData")
+## Output files ##
+DIFFERENTIAL_INDEGREES_TAB = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "differential_indegrees.tsv")
+DIFFERENTIAL_INDEGREES_RDATA = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "differential_indegrees.RData")
+DIFFERENTIAL_INDEGREES_RANKED = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "differential_indegrees.rnk")
+ENRICHMENT_RESULTS = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "enrichment.RData")
 
 ## Output plots ##
-PCA_PLOT_PDF = os.path.join(DIMENSIONALITY_REDUCTION_OUTPUT_DIR, "pc12.pdf") # In the R script it's written as follows:  pdf(pcaplot, file.path(OUTPUT_DIR, paste0("PCA", VARIABLE, "pc12.pdf")))
+PCA_PLOT_PDF = os.path.join(DIMENSIONALITY_REDUCTION_OUTPUT_DIR, "{dataset_type}_pc12.pdf") # In the R script it's written as follows:  pdf(pcaplot, file.path(OUTPUT_DIR, paste0("PCA", VARIABLE, "pc12.pdf")))
 
 
 ## Rule ALL ##
 rule all:
     input:
-        DIFFERENTIAL_INDEGREES_TAB, \
-        DIFFERENTIAL_INDEGREES_RDATA, \
-        DIFFERENTIAL_INDEGREES_RANKED, \
-        PCA_PLOT_PDF
+        expand(PCA_PLOT_PDF, dataset_type = DATASET_NAMES), \
+        expand(ENRICHMENT_RESULTS, dataset_type = DATASET_NAMES)
+        
 
 ## Rules ##
 
@@ -65,13 +72,13 @@ rule compute_differential_indegrees:
         indegrees = INPUT_INDEGREES
     output:
         DIFFERENTIAL_INDEGREES_TAB, \
-        DIFFERENTIAL_INDEGREES_RDATA \
+        DIFFERENTIAL_INDEGREES_RDATA, \
         DIFFERENTIAL_INDEGREES_RANKED
     message:
         "; Running differential indegree computation on {input}."
     params:
         bin = os.path.join(config["bin"], "preprocessing"), \
-        output_dir = os.path.join(BASE_OUTPUT_DIR, "differential_indegrees")
+        output_dir = os.path.join(BASE_OUTPUT_DIR, "differential_indegrees", "{dataset_type}")
     shell:
         """
         Rscript {params.bin}/compute_diff_indegrees.R \
@@ -100,20 +107,44 @@ rule perform_dimensionality_reduction:
     """
     input:
         metadata = INPUT_METADATA, \
-        indegrees = INPUT_INDEGREES, \
-        visualization_var = VIS_VAR
+        indegrees = INPUT_INDEGREES
     output:
         PCA_PLOT_PDF
     message:
         "; Running dimensionality reduction of indegrees on {input}."
+    container:
+        config["container"]
     params:
         bin = os.path.join(config["bin"], "preprocessing"), \
-        output_dir = os.path.join(BASE_OUTPUT_DIR, "dimensionality_reduction")
+        output_dir = os.path.join(BASE_OUTPUT_DIR, "dimensionality_reduction"), \
+        visualization_var = VIS_VAR
     shell:
         """
-        Rscript {params.bin}/compute_diff_indegrees.R \
+        Rscript {params.bin}/perform_dimensionality_reduction.R \
             -i {input.indegrees} \
             -m {input.metadata} \
-            -v {input.visualization_var} \
+            -v {params.visualization_var} \
             -o {params.output_dir}
         """
+
+rule run_gsea_on_ranks:
+    input:
+        ranks = DIFFERENTIAL_INDEGREES_RANKED, \
+        genes = GENE_SET_FILE
+    output:
+        ENRICHMENT_RESULTS
+    message:
+        "; Running GSEA."
+    params:
+        bin = os.path.join(config["bin"], "gsea"), \
+        output_dir = os.path.join(BASE_OUTPUT_DIR, "differential_indegrees")
+    shell:
+        """
+        echo "; I love snakemake" ;
+        # Rscript {params.bin}/enrich_please.R \
+        #     -i {input.ranks} \
+        #     -g {input.genes} \
+        #     -o {params.output_dir}
+        """
+    
+    
