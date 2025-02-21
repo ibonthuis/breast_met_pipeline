@@ -32,9 +32,9 @@ VIS_VAR = config["visualisation_var"]
 GENE_SET_FILE = config["gene_set_file"]
 
 ## Output files ##
-DIFFERENTIAL_INDEGREES_TAB = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "differential_indegrees.tsv")
+# DIFFERENTIAL_INDEGREES_TAB = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "differential_indegrees.tsv")
 DIFFERENTIAL_INDEGREES_RDATA = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "differential_indegrees.RData")
-DIFFERENTIAL_INDEGREES_RANKED = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "differential_indegrees.rnk")
+DIFFERENTIAL_INDEGREES_RANKED_RDATA = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "differential_indegrees_rank_file.RData")
 ENRICHMENT_RESULTS = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "enrichment.RData")
 
 ## Output plots ##
@@ -71,9 +71,9 @@ rule compute_differential_indegrees:
         metadata = INPUT_METADATA, \
         indegrees = INPUT_INDEGREES
     output:
-        DIFFERENTIAL_INDEGREES_TAB, \
+        # DIFFERENTIAL_INDEGREES_TAB, \
         DIFFERENTIAL_INDEGREES_RDATA, \
-        DIFFERENTIAL_INDEGREES_RANKED
+        DIFFERENTIAL_INDEGREES_RANKED_RDATA
     message:
         "; Running differential indegree computation on {input}."
     params:
@@ -129,7 +129,7 @@ rule perform_dimensionality_reduction:
 
 rule run_gsea_on_ranks:
     input:
-        ranks = DIFFERENTIAL_INDEGREES_RANKED, \
+        ranks = DIFFERENTIAL_INDEGREES_RANKED_RDATA, \
         genes = GENE_SET_FILE
     output:
         ENRICHMENT_RESULTS
@@ -141,7 +141,7 @@ rule run_gsea_on_ranks:
     shell:
         """
         echo "; I love snakemake" ;
-        # Rscript {params.bin}/enrich_please.R \
+        # Rscript {params.bin}/compute_gse.R \
         #     -i {input.ranks} \
         #     -g {input.genes} \
         #     -o {params.output_dir}

@@ -85,3 +85,22 @@ create_toptable_paired <- function(indegree_df, meta, patient_col, type_col){
   return(toptable)
 }
 
+
+
+## The following functions are needed in case there are permutations to be run to select 
+## specific metastases:
+
+filter_pairs <- function(indegree, meta, seednr) {
+  # sampling random metastasis when there are multiple metastases
+    meta_paired <- meta %>%
+      filter(pairs_rna_seq == "Paired")
+    set.seed(seednr)
+    df_selected <- meta_paired %>%
+      group_by(patient) %>%
+      summarise(
+      Primary = sample_name[sample_type == "Primary"],
+      Metastasis = sample(sample_name[sample_type == "Metastasis"], 1)
+    )
+    indegree_paired <- indegree[, colnames(indegree) %in% df_selected$Primary |  colnames(indegree) %in% df_selected$Metastasis]
+    return(indegree_paired)
+}
