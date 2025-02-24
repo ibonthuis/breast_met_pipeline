@@ -9,6 +9,8 @@ types: ["aurora", "cosgrove"]
 
 gene_set_file: "data/gene_sets/gene_set.gmt"
 visualisation_var: "sample_type"
+#ranks: ""
+p_threshold: 0.001
 
 # cancer_type: ["breast", "prostate"]
 
