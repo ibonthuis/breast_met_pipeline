@@ -128,11 +128,31 @@ rule perform_dimensionality_reduction:
         """
 
 rule run_gsea_on_ranks:
+    """
+    This rule takes ranked genes as input and computes enriched gene sets.
+
+    Inputs
+    ------
+    DIFFERENTIAL_INDEGREES_RANKED_RDATA:
+        blalbla
+    GENE_SET_FILE:
+        blablabla
+    VIS_VAR:
+        Variable to visualize.
+    Outputs
+    -------
+    ENRICHMENT_RESULTS_RDATA:
+        Table or list of tables containing the gene sets passing the p-value threshold 
+    ENRICHMENT_RESULTS_PDF:
+        A bubble plot (or bubble plots) in one pdf file.
+
+    """
     input:
         ranks = DIFFERENTIAL_INDEGREES_RANKED_RDATA, \
         genes = GENE_SET_FILE
     output:
-        ENRICHMENT_RESULTS
+        ENRICHMENT_RESULTS_RDATA
+        ENRICHMENT_RESULTS_PDF
     message:
         "; Running GSEA."
     params:
