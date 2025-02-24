@@ -1,105 +1,59 @@
-#' Create a List of Gene Ranked Files
+#' Perform Gene Set Enrichment Analysis (GSEA)
 #'
-#' This function sets the working directory to the specified directory name and 
-#' retrieves a list of files with the ".rnk" extension.
+#' This function performs Gene Set Enrichment Analysis (GSEA) on differential expression results.
 #'
-#' @param dir_name A character string specifying the directory path where the 
-#' gene ranked files are located. When running the script using snakemake, the 
-#' directory path should be upstream of where this script is living.
-#' 
-#' @return A character vector containing the names of the files with the ".rnk" 
-#' extension in the specified directory.
+#' @param diff_results A data frame containing differential expression results. 
+#'        It should include columns for gene identifiers and their associated statistics (e.g., log fold change, p-values).
+#' @param gene_set A list or data frame containing the gene sets to be tested. 
+#'        Each gene set should be a vector of gene identifiers.
+#' @param p_threshold A numeric value specifying the p-value threshold for significance.
+#'
+#' @return A data frame with the results of the GSEA, including enrichment scores and p-values for each gene set.
 #'
 #' @examples
-#' \dontrun{
-#'   gene_ranked_files <- create_list_of_gene_ranked_files("/path/to/directory")
-#'   print(gene_ranked_files)
-#' }
-create_list_of_gene_ranked_files <- function(dir_name){
-    setwd(dir_name)
-    analyses <- list.files(pattern = ".rnk")
-    return(analyses)
+#' # Example usage:
+#' diff_results <- data.frame(gene = c("gene1", "gene2", "gene3"), logFC = c(2.3, -1.5, 0.8), p_value = c(0.01, 0.05, 0.2))
+#' gene_set <- list(set1 = c("gene1", "gene3"), set2 = c("gene2"))
+#' p_threshold <- 0.05
+#' gsea_results <- perform_gsea(diff_results, gene_set, p_threshold)
+#'
+#' @export
+perform_gsea <- function(diff_results, gene_set, p_threshold) {
+  colnames(diff_results) <- c("geneName", "stat")
+  ranks <- tibble::deframe(diff_results)
+  set.seed(1)
+  fgseaRes <- fgseaMultilevel(pathways=gene_set, stats=ranks, maxSize=1000)
+  fgseaRes <- fgseaRes[, c(1:7)]
+  fgseaRes <- fgseaRes[fgseaRes$padj<p_threshold,] 
+  return(fgseaRes)
 }
 
 
-# run_gsea <- function(ranked_df){
-#     ranked_df_name <- names(ranked_df)
-#     assign(paste("gsea", ranked_df_name, sep=""), 
-#         paste(
-#         "java -Xmx4096m -cp gsea2-2.0.13.jar xtools.gsea.GseaPreranked -gmx ",
-#         signaturename,
-#         " -collapse false -mode Max_probe -norm meandiv -nperm ", 
-#         nriter,
-#         " -rnk ./", 
-#         ranked_df_name
-#         ,
-#         " -scoring_scheme weighted -rpt_label ", 
-#         substr(ranked_df_name, 1, nchar(ranked_df_name)-4),
-#         " -include_only_symbols true -make_sets true -plot_top_x 0 -rnd_seed timestamp -set_max 250 -set_min 1 -zip_report false -out ./ -gui false", sep=""
-#         ) )
-#       set.seed(1)
-#       system(eval(parse(text=paste("gsea", ranked_df_name, sep=""))))
-
-#     # read in results and save results and significant results
-#       gseadir <- list.files(pattern=paste(substr(ranked_df, 1, nchar(ranked_df)-4),".GseaPreranked", sep=""))
-#       setwd(gseadir) 
-#       #getwd()
-#       gseafiles <- list.files(pattern="gsea_report") # gsea outputs .html and .xls files for signatures with positive and negative enrichment scores
-#       neg <- read.delim(gseafiles[2]) # signatures with negative enrichment scores
-#       pos <- read.delim(gseafiles[4]) # signatures with positive enrichment scores
-#       head(pos, n = 50)
-#       head(pos[order(pos$FDR.q.val),])
-#       head(neg[order(neg$FDR.q.val),])
-# }
-
-#' @name perform_gsea
+#' Plot Bubble Plot for GSEA Results
 #'
-#' @description This function performs Gene Set Enrichment Analysis (GSEA) on
-#' results of differential analysis based on JDR factors. See
-#' \code{\link{differential_analysis}} for details.
+#' This function generates a bubble plot to visualize the results of Gene Set Enrichment Analysis (GSEA).
 #'
-#' @inheritParams differential_analysis
-#' @param diff_results A data frame containing either a limma toptable or the
-#' output of \code{link{differential_analysis}}.
-#' @param gene_set A .gmt file containing gene sets of interest or a list of
-#' gene sets to test.
-#' @param differential Logiacal. Whether differential analysis has been
-#' performed on the data or this is just being run on weights. I will probably
-#' eventually remove the differential options entirely, but for now.
-#' @param limma Logical. Whether limma was used for differential. Only needed
-#' if differential = TRUE. If false, it assumes wilcoxon was used.
-#' @param ... Any other parameters accepted by fgsea.
-#' @seealso \code{\link{fgsea::fgsea}}
+#' @param gsea_result A data frame containing the results of GSEA. It should include columns for 
+#' gene set name (NAME), enrichment scores (ES), p-values (padj), and other relevant metrics.
+#' @param blues A color palette consisting of multiple colours, preferably getting increasingly 
+#' darker. 
 #'
-#' @returns Results of GSEA
+#' @return A ggplot2 object representing the bubble plot of the GSEA results.
+#'
+#' @examples
+#' \dontrun{
+#'   # Assuming gsea_result is a data frame with the required structure
+#'   bubble_plot <- plot_bubble_plot(gsea_result)
+#'   print(bubble_plot)
+#' }
+#'
 #' @export
-
-perform_gsea <- function(diff_results, differential = FALSE, limma = TRUE,
-                         gene_set, save_file = TRUE,
-                         file_name = NULL, ...) {
-  # get gene set
-  if (is.character(gene_set)) {
-    gene_set <- fgsea::gmtPathways(gene_set)
-  }
-
-  # sanity checks
-  # check that omic and gene_set use the same annotation
-  gs_names <- unlist(unique(gene_set))
-  omic_names <- rownames(diff_results)
-  .check_names(omic_names, gs_names, partial = TRUE,
-               err_msg = "the gene sets and the omic data use the same annotation") # nolint
-
-  # create rank
-  rnk <- .create_rank(diff_results, differential, limma)
-
-  gsea_res <- fgsea::fgsea(pathways = gene_set, rnk, ...)
-
-
-  if (save_file) {
-    if (is.null(file_name)) {
-      file_name <- "gsea_analysis_results.RData"
-    }
-    save(rnk, gsea_res, file = file_name)
-  }
-  return(gsea_res)
+plot_bubble_plot <- function(gsea_result, blues) {
+  gsea_result <- as.data.frame(gsea_result)
+  g <- ggplot(gsea_result, aes(x=padj,y=pathway,size=size, fill = ES))+
+          geom_point(shape=21, fg="grey")+ 
+          scale_size_area(max_size=10)+
+          scale_fill_gradient2(high = "red", mid = "white", low = blues[length(blues)])+
+          theme(axis.text.y = element_text(size = 14), axis.title.y = element_blank(), )
+  return(g)
 }
