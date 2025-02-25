@@ -95,7 +95,7 @@ if (class(rank_list) == "list") {
 
 save(
     list_of_gsea,
-    file = file.path(OUTPUT_DIR, paste0("differential_genesets", P_THRESH, ".RData"))
+    file = file.path(OUTPUT_DIR, paste0("differential_genesets.RData")) # , P_THRESH,
 )
 
 
@@ -119,22 +119,3 @@ if (class(rank_list) == "list") {
    show(list_of_bubble)
    dev.off()
 }
-
-# if (class(list_of_bubble) != "list") {
-#     pdf(
-#         file.path(OUTPUT_DIR, paste0("bubble_plot_padj", P_THRESH, ".pdf")),
-#         width = 16,
-#         height = 16)
-#    show(list_of_bubble)
-#    dev.off()
-# } else {
-#     pdf(
-#         file.path(OUTPUT_DIR, paste0("bubble_plots_padj", P_THRESH, ".pdf")),
-#         width = 16,
-#         height = 16
-#     )
-#     for (i in 1:length(list_of_bubble)) {
-#         show(list_of_bubble[[i]])
-#     }
-#     dev.off()
-# }

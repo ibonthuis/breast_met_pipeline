@@ -24,6 +24,7 @@ DATASET_NAMES = config["types"]
 BASE_OUTPUT_DIR = config["output_dir"]
 DIFFERENTIAL_INDEGREE_OUTPUT_DIR = os.path.join(BASE_OUTPUT_DIR, "differential_indegrees")
 DIMENSIONALITY_REDUCTION_OUTPUT_DIR = os.path.join(BASE_OUTPUT_DIR, "dimensionality_reduction")
+#GENESET_ENRICHMENT_OUTPUT_DIR = os.path.join(BASE_OUTPUT_DIR, "gsea")
 
 ## Input files ##
 INPUT_METADATA = os.path.join(DATA_DIR, "{dataset_type}", "metadata.csv")
@@ -47,9 +48,10 @@ ENRICHMENT_RESULTS_PDF = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{datase
 ## Rule ALL ##
 rule all:
     input:
+        expand(DIFFERENTIAL_INDEGREES_RDATA, dataset_type = DATASET_NAMES), \
         expand(PCA_PLOT_PDF, dataset_type = DATASET_NAMES, visualisation_var = VIS_VAR), \
-        expand(ENRICHMENT_RESULTS_PDF, dataset_type = DATASET_NAMES), \
-        expand(ENRICHMENT_RESULTS_RDATA, dataset_type = DATASET_NAMES)
+        expand(ENRICHMENT_RESULTS_RDATA, dataset_type = DATASET_NAMES),\
+        expand(ENRICHMENT_RESULTS_PDF, dataset_type = DATASET_NAMES)
 
         
 
@@ -175,4 +177,44 @@ rule run_gsea_on_ranks:
             -o {params.output_dir}
         """
     
-    
+rule run_gsea_on_ranks:
+    """
+    This rule takes ranked genes as input and computes enriched gene sets.
+
+    Inputs
+    ------
+    DIFFERENTIAL_INDEGREES_RANKED_RDATA:
+        blalbla
+    GENE_SET_FILE:
+        blablabla
+    Outputs
+    -------
+    ENRICHMENT_RESULTS_RDATA:
+        Table or list of tables containing the gene sets passing the p-value threshold 
+    ENRICHMENT_RESULTS_PDF:
+        A bubble plot (or bubble plots) in one pdf file.
+
+    """
+    input:
+        ranks = DIFFERENTIAL_INDEGREES_RANKED_RDATA, \
+        genes = GENE_SET_FILE
+    output:
+        # rdata = expand(ENRICHMENT_RESULTS_RDATA, dataset_type="{dataset_type}"), \
+        # pdf = expand(ENRICHMENT_RESULTS_PDF, dataset_type="{dataset_type}")
+        ENRICHMENT_RESULTS_RDATA, \
+        ENRICHMENT_RESULTS_PDF
+    message:
+        "; Running GSEA."
+    params:
+        bin = os.path.join(config["bin"], "preprocessing"), \
+        output_dir = os.path.join(BASE_OUTPUT_DIR, "differential_indegrees", "{dataset_type}"), \
+        p_threshold = P_THRESH
+    shell:
+        """
+        echo "; I love snakemake" ;
+        Rscript {params.bin}/compute_gse.R \
+            -i {input.ranks} \
+            -g {input.genes} \
+            -p {params.p_threshold} \
+            -o {params.output_dir}
+        """
