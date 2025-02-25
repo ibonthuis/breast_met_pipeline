@@ -29,6 +29,12 @@ option_list <- list(
         default = NULL,
         help = "Path to the metadata file.",
         metavar = "character"),
+    # optparse::make_option(
+    #     c("-t", "--type"),
+    #     type = "character",
+    #     default = NULL,
+    #     help = "The wildcard thing",
+    #     metavar = "character")
     optparse::make_option(
         c("-o", "--output_dir"),
         type = "character",
@@ -43,6 +49,7 @@ opt <- optparse::parse_args(opt_parser)
 ## Initialize variable
 METADATA_FILE <- opt$metadata
 INDEGREES_FILE <- opt$indegrees
+#DATA_TYPE <- opt$type
 OUTPUT_DIR <- opt$output_dir
 
 ## Debug
@@ -69,9 +76,8 @@ nr_of_met <- sum(metadata_df$sample_type == "Metastasis")
 
 if (nr_of_prim == nr_of_met) {
     paired_toptables <- create_toptable_paired(indegree_df, metadata_df, "patient", "sample_type")
-    ranked_indegree_df <- as.data.frame(paired_toptables[, c("t")])
-    ranked_indegree_df$gene <- rownames(ranked_indegree_df)
-    ranked_paired_toptables <- ranked_indegree_df[, c("gene", "t")]
+    paired_toptables$gene <- rownames(paired_toptables)
+    ranked_paired_toptables <- paired_toptables[, c("gene", "t")]
 } else {
     list_of_pairs <- list()
     names_for_list <- list("first", "second", "third", "fourth", "fifth")

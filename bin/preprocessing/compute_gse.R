@@ -37,7 +37,7 @@ option_list <- list(
         type = "character",
         default = NULL,
         help = "Threshold value for significance in adjusted p-values for the enriched gene sets",
-        metavar = "character"),
+        metavar = "numeric"),
     optparse::make_option(
         c("-o", "--output_dir"),
         type = "character",
@@ -77,10 +77,19 @@ pathways <- gmtPathways(GENE_SET)
 
 if (class(rank_list) == "list") {
    list_of_gsea <- purrr::map(rank_list, ~ perform_gsea(.x, pathways, P_THRESH))
-   list_of_bubble <- purrr::map(list_of_gsea, ~ plot_bubble_plot(.x, blues))
+   selected_gsea <- purrr::map(list_of_gsea, ~ {
+    df <- as.data.frame(.x)
+    df <- df[order(df$padj, na.last = TRUE, decreasing = FALSE ),]
+    df <- df[1:20, ]
+    df
+   })
+   list_of_bubble <- purrr::map(selected_gsea, ~ plot_bubble_plot(.x, blues))
+
 } else {
-    list_of_gsea <- perform_gsea(rank_list, GENE_SET, P_THRESH)
-    list_of_bubble <- plot_bubble_plot(list_of_gsea, blues)
+    list_of_gsea <- perform_gsea(rank_list, pathways, P_THRESH)
+    selected_gsea <- list_of_gsea[order(list_of_gsea$padj, na.last = TRUE, decreasing = FALSE),]
+    selected_gsea <- selected_gsea[1:20,]
+    list_of_bubble <- plot_bubble_plot(selected_gsea, blues)
 }
 
 
@@ -90,23 +99,40 @@ save(
 )
 
 
-if (class(list_of_bubble) == "list") {
+if (class(rank_list) == "list") {
     pdf(
-        file.path(OUTPUT_DIR, paste0("bubble_plot_padj", P_THRESH, ".pdf"),
-        width = 16,
-        height = 16)
+        file.path(OUTPUT_DIR, paste0("enrichment_bubble_plot_", P_THRESH, ".pdf")),
+        width = 18,
+        height = 10
     )
     for (i in 1:length(list_of_bubble)) {
-       show(list_of_bubble[i])
+        show(list_of_bubble[[i]])
     }
     dev.off()
 } else {
     pdf(
-        file.path(OUTPUT_DIR, paste0("bubble_plot_padj", P_THRESH, ".pdf")),
-        width = 16,
-        height = 16
-    )
+        file.path(OUTPUT_DIR, paste0("enrichment_bubble_plot_", P_THRESH, ".pdf")),
+        width = 18,
+        height = 10)
    show(list_of_bubble)
    dev.off()
 }
 
+# if (class(list_of_bubble) != "list") {
+#     pdf(
+#         file.path(OUTPUT_DIR, paste0("bubble_plot_padj", P_THRESH, ".pdf")),
+#         width = 16,
+#         height = 16)
+#    show(list_of_bubble)
+#    dev.off()
+# } else {
+#     pdf(
+#         file.path(OUTPUT_DIR, paste0("bubble_plots_padj", P_THRESH, ".pdf")),
+#         width = 16,
+#         height = 16
+#     )
+#     for (i in 1:length(list_of_bubble)) {
+#         show(list_of_bubble[[i]])
+#     }
+#     dev.off()
+# }
