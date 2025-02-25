@@ -7,10 +7,10 @@ container: "docker://cbgr/jaspar_curation_base:0.9.1"
 data_dir: "data/input_data"
 types: ["aurora", "cosgrove"]
 
-gene_set_file: "data/gene_sets/gene_set.gmt"
+gene_set_file: "data/gene_sets/c2.cp.reactome.v5.0.symbols.gmt"
 visualisation_var: "sample_type"
 #ranks: ""
-p_threshold: 0.001
+p_threshold: 0.05
 
 # cancer_type: ["breast", "prostate"]
 

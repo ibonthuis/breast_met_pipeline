@@ -28,24 +28,27 @@ DIMENSIONALITY_REDUCTION_OUTPUT_DIR = os.path.join(BASE_OUTPUT_DIR, "dimensional
 ## Input files ##
 INPUT_METADATA = os.path.join(DATA_DIR, "{dataset_type}", "metadata.csv")
 INPUT_INDEGREES = os.path.join(DATA_DIR, "{dataset_type}", "filtered_indegree.csv")
-VIS_VAR = config["visualisation_var"]
 GENE_SET_FILE = config["gene_set_file"]
+
+## Other inputs ##
+VIS_VAR = config["visualisation_var"]
+P_THRESH = config["p_threshold"]
 
 ## Output files ##
 # DIFFERENTIAL_INDEGREES_TAB = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "differential_indegrees.tsv")
 DIFFERENTIAL_INDEGREES_RDATA = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "differential_indegrees.RData")
 DIFFERENTIAL_INDEGREES_RANKED_RDATA = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "differential_indegrees_rank_file.RData")
-ENRICHMENT_RESULTS = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "enrichment.RData")
+ENRICHMENT_RESULTS_RDATA = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "differential_genesets.RData")
 
 ## Output plots ##
-PCA_PLOT_PDF = os.path.join(DIMENSIONALITY_REDUCTION_OUTPUT_DIR, "{dataset_type}_pc12.pdf") # In the R script it's written as follows:  pdf(pcaplot, file.path(OUTPUT_DIR, paste0("PCA", VARIABLE, "pc12.pdf")))
-
+PCA_PLOT_PDF = os.path.join(DIMENSIONALITY_REDUCTION_OUTPUT_DIR, "{dataset_type}", "PCA_{visualisation_var}_pc12.pdf") # In the R script it's written as follows:  pdf(pcaplot, file.path(OUTPUT_DIR, paste0("PCA", VARIABLE, "pc12.pdf")))
+ENRICHMENT_RESULTS_PDF = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "enrichment_bubble_plot_.pdf")
 
 ## Rule ALL ##
 rule all:
     input:
-        expand(PCA_PLOT_PDF, dataset_type = DATASET_NAMES), \
-        expand(ENRICHMENT_RESULTS, dataset_type = DATASET_NAMES)
+        expand(PCA_PLOT_PDF, dataset_type = DATASET_NAMES, visualisation_var = VIS_VAR), \
+        expand(ENRICHMENT_RESULTS_PDF, dataset_type = DATASET_NAMES)
         
 
 ## Rules ##
@@ -116,8 +119,9 @@ rule perform_dimensionality_reduction:
         config["container"]
     params:
         bin = os.path.join(config["bin"], "preprocessing"), \
-        output_dir = os.path.join(BASE_OUTPUT_DIR, "dimensionality_reduction"), \
-        visualization_var = VIS_VAR
+        output_dir = os.path.join(BASE_OUTPUT_DIR, "dimensionality_reduction", "{dataset_type}"), \
+        visualization_var = VIS_VAR, \
+      #  dataset_type = "{dataset_type}"
     shell:
         """
         Rscript {params.bin}/perform_dimensionality_reduction.R \
@@ -137,8 +141,6 @@ rule run_gsea_on_ranks:
         blalbla
     GENE_SET_FILE:
         blablabla
-    VIS_VAR:
-        Variable to visualize.
     Outputs
     -------
     ENRICHMENT_RESULTS_RDATA:
@@ -151,19 +153,21 @@ rule run_gsea_on_ranks:
         ranks = DIFFERENTIAL_INDEGREES_RANKED_RDATA, \
         genes = GENE_SET_FILE
     output:
-        ENRICHMENT_RESULTS_RDATA
+        ENRICHMENT_RESULTS_RDATA, \
         ENRICHMENT_RESULTS_PDF
     message:
         "; Running GSEA."
     params:
         bin = os.path.join(config["bin"], "gsea"), \
-        output_dir = os.path.join(BASE_OUTPUT_DIR, "differential_indegrees")
+        output_dir = os.path.join(BASE_OUTPUT_DIR, "differential_indegrees", "{dataset_type}"), \
+        p_threshold = P_THRESH
     shell:
         """
         echo "; I love snakemake" ;
         # Rscript {params.bin}/compute_gse.R \
         #     -i {input.ranks} \
         #     -g {input.genes} \
+        #     -p {params.p_threshold} \
         #     -o {params.output_dir}
         """
     
