@@ -101,7 +101,8 @@ save(
 
 if (class(rank_list) == "list") {
     pdf(
-        file.path(OUTPUT_DIR, paste0("enrichment_bubble_plot_", P_THRESH, ".pdf")),
+        file.path(OUTPUT_DIR, paste0("enrichment_bubble_plot_.pdf")),
+        #file.path(OUTPUT_DIR, paste0("enrichment_bubble_plot_", P_THRESH, ".pdf")),
         width = 18,
         height = 10
     )
@@ -111,7 +112,8 @@ if (class(rank_list) == "list") {
     dev.off()
 } else {
     pdf(
-        file.path(OUTPUT_DIR, paste0("enrichment_bubble_plot_", P_THRESH, ".pdf")),
+        file.path(OUTPUT_DIR, paste0("enrichment_bubble_plot_.pdf")),
+        #file.path(OUTPUT_DIR, paste0("enrichment_bubble_plot_", P_THRESH, ".pdf")),
         width = 18,
         height = 10)
    show(list_of_bubble)

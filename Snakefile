@@ -48,7 +48,9 @@ ENRICHMENT_RESULTS_PDF = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{datase
 rule all:
     input:
         expand(PCA_PLOT_PDF, dataset_type = DATASET_NAMES, visualisation_var = VIS_VAR), \
-        expand(ENRICHMENT_RESULTS_PDF, dataset_type = DATASET_NAMES)
+        expand(ENRICHMENT_RESULTS_PDF, dataset_type = DATASET_NAMES), \
+        expand(ENRICHMENT_RESULTS_RDATA, dataset_type = DATASET_NAMES)
+
         
 
 ## Rules ##
@@ -153,22 +155,24 @@ rule run_gsea_on_ranks:
         ranks = DIFFERENTIAL_INDEGREES_RANKED_RDATA, \
         genes = GENE_SET_FILE
     output:
+        # rdata = expand(ENRICHMENT_RESULTS_RDATA, dataset_type="{dataset_type}"), \
+        # pdf = expand(ENRICHMENT_RESULTS_PDF, dataset_type="{dataset_type}")
         ENRICHMENT_RESULTS_RDATA, \
         ENRICHMENT_RESULTS_PDF
     message:
         "; Running GSEA."
     params:
-        bin = os.path.join(config["bin"], "gsea"), \
+        bin = os.path.join(config["bin"], "preprocessing"), \
         output_dir = os.path.join(BASE_OUTPUT_DIR, "differential_indegrees", "{dataset_type}"), \
         p_threshold = P_THRESH
     shell:
         """
         echo "; I love snakemake" ;
-        # Rscript {params.bin}/compute_gse.R \
-        #     -i {input.ranks} \
-        #     -g {input.genes} \
-        #     -p {params.p_threshold} \
-        #     -o {params.output_dir}
+        Rscript {params.bin}/compute_gse.R \
+            -i {input.ranks} \
+            -g {input.genes} \
+            -p {params.p_threshold} \
+            -o {params.output_dir}
         """
     
     
