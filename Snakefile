@@ -24,7 +24,7 @@ DATASET_NAMES = config["types"]
 BASE_OUTPUT_DIR = config["output_dir"]
 DIFFERENTIAL_INDEGREE_OUTPUT_DIR = os.path.join(BASE_OUTPUT_DIR, "differential_indegrees")
 DIMENSIONALITY_REDUCTION_OUTPUT_DIR = os.path.join(BASE_OUTPUT_DIR, "dimensionality_reduction")
-#GENESET_ENRICHMENT_OUTPUT_DIR = os.path.join(BASE_OUTPUT_DIR, "gsea")
+OVERLAPPING_PATHWAYS_DIR = os.path.join(BASE_OUTPUT_DIR, "overlapping_pathways")
 
 ## Input files ##
 INPUT_METADATA = os.path.join(DATA_DIR, "{dataset_type}", "metadata.csv")
@@ -40,6 +40,7 @@ P_THRESH = config["p_threshold"]
 DIFFERENTIAL_INDEGREES_RDATA = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "differential_indegrees.RData")
 DIFFERENTIAL_INDEGREES_RANKED_RDATA = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "differential_indegrees_rank_file.RData")
 ENRICHMENT_RESULTS_RDATA = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "differential_genesets.RData")
+OVERLAPPING_RESULTS_RDATA = os.path.join(OVERLAPPING_PATHWAYS_DIR, "overlapping_pathways_across_datasets.RData")
 
 ## Output plots ##
 PCA_PLOT_PDF = os.path.join(DIMENSIONALITY_REDUCTION_OUTPUT_DIR, "{dataset_type}", "PCA_{visualisation_var}_pc12.pdf") # In the R script it's written as follows:  pdf(pcaplot, file.path(OUTPUT_DIR, paste0("PCA", VARIABLE, "pc12.pdf")))
@@ -154,8 +155,7 @@ rule run_gsea_on_ranks:
 
     """
     input:
-        ranks = DIFFERENTIAL_INDEGREES_RANKED_RDATA, \
-        genes = GENE_SET_FILE
+        ranks = DIFFERENTIAL_INDEGREES_RANKED_RDATA
     output:
         # rdata = expand(ENRICHMENT_RESULTS_RDATA, dataset_type="{dataset_type}"), \
         # pdf = expand(ENRICHMENT_RESULTS_PDF, dataset_type="{dataset_type}")
@@ -166,55 +166,57 @@ rule run_gsea_on_ranks:
     params:
         bin = os.path.join(config["bin"], "preprocessing"), \
         output_dir = os.path.join(BASE_OUTPUT_DIR, "differential_indegrees", "{dataset_type}"), \
-        p_threshold = P_THRESH
+     #   p_threshold = P_THRESH,    #       -p {params.p_threshold} \
+        genes = GENE_SET_FILE
     shell:
         """
         echo "; I love snakemake" ;
         Rscript {params.bin}/compute_gse.R \
             -i {input.ranks} \
-            -g {input.genes} \
-            -p {params.p_threshold} \
+            -g {params.genes} \
+
             -o {params.output_dir}
         """
     
-rule run_gsea_on_ranks:
-    """
-    This rule takes ranked genes as input and computes enriched gene sets.
+# rule find_overlapping_pathways:
+#     """
+#     This rule takes the significant pathways output from both datasets as computed by run_gsea_on_ranks rule. 
+    
+#     Inputs
+#     ------
+#     pathways:
+#         The RData files from run_gsea_on_ranks
+#     Outputs
+#     -------
+#     ENRICHMENT_RESULTS_RDATA:
+#         Table or list of tables containing the gene sets passing the p-value threshold 
+#     ENRICHMENT_RESULTS_PDF:
+#         A bubble plot (or bubble plots) in one pdf file.
+    
+#     Params
+#     ------
+#     GENE_SET_FILE:
+#         gene set file is not dependent on wildcards, input and output should be something produced by snakemake
 
-    Inputs
-    ------
-    DIFFERENTIAL_INDEGREES_RANKED_RDATA:
-        blalbla
-    GENE_SET_FILE:
-        blablabla
-    Outputs
-    -------
-    ENRICHMENT_RESULTS_RDATA:
-        Table or list of tables containing the gene sets passing the p-value threshold 
-    ENRICHMENT_RESULTS_PDF:
-        A bubble plot (or bubble plots) in one pdf file.
 
-    """
-    input:
-        ranks = DIFFERENTIAL_INDEGREES_RANKED_RDATA, \
-        genes = GENE_SET_FILE
-    output:
-        # rdata = expand(ENRICHMENT_RESULTS_RDATA, dataset_type="{dataset_type}"), \
-        # pdf = expand(ENRICHMENT_RESULTS_PDF, dataset_type="{dataset_type}")
-        ENRICHMENT_RESULTS_RDATA, \
-        ENRICHMENT_RESULTS_PDF
-    message:
-        "; Running GSEA."
-    params:
-        bin = os.path.join(config["bin"], "preprocessing"), \
-        output_dir = os.path.join(BASE_OUTPUT_DIR, "differential_indegrees", "{dataset_type}"), \
-        p_threshold = P_THRESH
-    shell:
-        """
-        echo "; I love snakemake" ;
-        Rscript {params.bin}/compute_gse.R \
-            -i {input.ranks} \
-            -g {input.genes} \
-            -p {params.p_threshold} \
-            -o {params.output_dir}
-        """
+#     """
+#     input:
+#         pathways = expand(ENRICHMENT_RESULTS_RDATA, dataset_type=DATASET_NAMES)
+#     output:
+#         OVERLAPPING_RESULTS_RDATA #, \
+#         # OVERLAPPING_PATHWAYS_HEATMAP_PDF, \
+#         # SCATTERPLOT_PATHWAYS_PDF
+#     message:
+#         "; Running GSEA."
+#     params:
+#         geneset = GENE_SET_FILE, \ 
+#         bin = os.path.join(config["bin"], "processing"), \
+#         output_dir = os.path.join(BASE_OUTPUT_DIR, "overlapping_pathways")
+#     shell:
+#         """
+#         echo "; I love snakemake more" ;
+#         Rscript {params.bin}/overlap_pathways.R \
+#             -i {input.pathways} \
+#             -g {params.geneset} \
+#             -o {params.output_dir}
+#         """
