@@ -32,12 +32,12 @@ option_list <- list(
         help = "Path to the ranked file. But snakemake will know this because it was 
         built upstream",
         metavar = "character"),
-    optparse::make_option(
-        c("-p", "--p_threshold"),
-        type = "character",
-        default = NULL,
-        help = "Threshold value for significance in adjusted p-values for the enriched gene sets",
-        metavar = "numeric"),
+    # optparse::make_option(
+    #     c("-p", "--p_threshold"),
+    #     type = "character",
+    #     default = NULL,
+    #     help = "Threshold value for significance in adjusted p-values for the enriched gene sets",
+    #     metavar = "numeric"),
     optparse::make_option(
         c("-o", "--output_dir"),
         type = "character",
@@ -52,7 +52,7 @@ opt <- optparse::parse_args(opt_parser)
 ## Initialize variable
 GENE_SET <- opt$gene_set_file
 RANK_FILE <- opt$ranks
-P_THRESH <- opt$p_threshold
+#P_THRESH <- opt$p_threshold
 OUTPUT_DIR <- opt$output_dir
 
 
@@ -75,7 +75,7 @@ blues <- RColorBrewer::brewer.pal(n = 8, name = "Blues")
 pathways <- gmtPathways(GENE_SET)
 
 if (class(rank_list) == "list") {
-   list_of_gsea <- purrr::map(rank_list, ~ perform_gsea(.x, pathways, P_THRESH))
+   list_of_gsea <- purrr::map(rank_list, ~ perform_gsea(.x, pathways))
    selected_gsea <- purrr::map(list_of_gsea, ~ {
     df <- as.data.frame(.x)
     df <- df[order(df$padj, na.last = TRUE, decreasing = FALSE ),]
@@ -85,7 +85,7 @@ if (class(rank_list) == "list") {
    list_of_bubble <- purrr::map(selected_gsea, ~ plot_bubble_plot(.x, blues))
 
 } else {
-    list_of_gsea <- perform_gsea(rank_list, pathways, P_THRESH)
+    list_of_gsea <- perform_gsea(rank_list, pathways)
     selected_gsea <- list_of_gsea[order(list_of_gsea$padj, na.last = TRUE, decreasing = FALSE),]
     selected_gsea <- selected_gsea[1:20,]
     list_of_bubble <- plot_bubble_plot(selected_gsea, blues)
