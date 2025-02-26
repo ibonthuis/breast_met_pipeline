@@ -69,10 +69,10 @@ ds1 <- "COS"
 ds2 <- "AUR"
 
 all_pathways <- merge_all_pathways(enriched_pathways1, enriched_pathways2, ds1, ds2, "pathway")
-head(enriched_pathways2[[1]])
-class(enriched_pathways2[[1]])
+# head(enriched_pathways2[[1]])
+# class(enriched_pathways2[[1]])
 
-test <- merge_gsea_results(enriched_pathways2, "AUR", "pathway")
+# test <- merge_gsea_results(enriched_pathways2, "AUR", "pathway")
 
-enr <- get(load(enriched_pathways2))
-head(enr)
+# enr <- get(load(enriched_pathways2))
+# head(enr)
