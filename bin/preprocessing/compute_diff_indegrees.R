@@ -81,7 +81,7 @@ if (nr_of_prim == nr_of_met) {
 } else {
     list_of_pairs <- list()
     names_for_list <- list("first", "second", "third", "fourth", "fifth")
-   for(seednr in 1:5){
+   for(seednr in 1:5){ # 5 permutations
         select_pair <- filter_pairs(indegree_df, metadata_df, seednr)
         select_pair <- list(select_pair)
         names(select_pair) <- names_for_list[seednr]
