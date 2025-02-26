@@ -70,8 +70,7 @@ source("bin/preprocessing/compute_gse_fn.R")
 dir.create(OUTPUT_DIR, showWarnings = FALSE, recursive = TRUE)
 
 ## Gene set enrichment analysis
-load(RANK_FILE)
-rank_list <- ranked_paired_toptables
+rank_list <- get(load(RANK_FILE))
 blues <- RColorBrewer::brewer.pal(n = 8, name = "Blues")
 pathways <- gmtPathways(GENE_SET)
 
@@ -90,6 +89,7 @@ if (class(rank_list) == "list") {
     selected_gsea <- list_of_gsea[order(list_of_gsea$padj, na.last = TRUE, decreasing = FALSE),]
     selected_gsea <- selected_gsea[1:20,]
     list_of_bubble <- plot_bubble_plot(selected_gsea, blues)
+    list_of_gsea <- list(list_of_gsea)
 }
 
 
