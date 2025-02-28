@@ -18,13 +18,13 @@
 #' gsea_results <- perform_gsea(diff_results, gene_set, p_threshold)
 #'
 #' @export
-perform_gsea <- function(diff_results, gene_set, p_threshold) {
+perform_gsea <- function(diff_results, gene_set) {
   colnames(diff_results) <- c("geneName", "stat")
   ranks <- tibble::deframe(diff_results)
   set.seed(1)
   fgseaRes <- fgseaMultilevel(pathways=gene_set, stats=ranks, maxSize=1000)
   fgseaRes <- fgseaRes[, c(1:7)]
-  fgseaRes <- fgseaRes[fgseaRes$padj<p_threshold,] 
+ # fgseaRes <- fgseaRes[fgseaRes$padj<p_threshold,] 
   return(fgseaRes)
 }
 
@@ -56,4 +56,20 @@ plot_bubble_plot <- function(gsea_result, blues) {
           scale_fill_gradient2(high = "red", mid = "white", low = blues[length(blues)])+
           theme(axis.text.y = element_text(size = 14), axis.title.y = element_blank(), )
   return(g)
+}
+
+
+merge_enriched_pathways_list_into_df <- function(gsea_results_list, column_to_merge, ds) {  
+  gsea_results_list <- purrr::map2(gsea_results_list, 1:length(gsea_results_list), function(df, i) {
+    df <- as.data.frame(df)
+    df <- df[, c(1, 3, 5, 7)]
+    colnames(df) <- c(column_to_merge, paste0("PADJ_", ds, i), paste0("ES_", ds, i), paste0("SIZE_", ds, i) )
+    return(df)
+  })
+
+  merged_gsea_results <- purrr::reduce(gsea_results_list, function(df1, df2) {
+    merge(df1, df2, by = column_to_merge)
+  })
+  
+  return(merged_gsea_results)
 }

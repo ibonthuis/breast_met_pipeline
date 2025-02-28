@@ -32,12 +32,12 @@ option_list <- list(
         help = "Path to the ranked file. But snakemake will know this because it was 
         built upstream",
         metavar = "character"),
-    # optparse::make_option(
-    #     c("-p", "--p_threshold"),
-    #     type = "character",
-    #     default = NULL,
-    #     help = "Threshold value for significance in adjusted p-values for the enriched gene sets",
-    #     metavar = "numeric"),
+    optparse::make_option(
+        c("-p", "--p_threshold"),
+        type = "character",
+        default = NULL,
+        help = "Threshold value for significance in adjusted p-values for the enriched gene sets",
+        metavar = "numeric"),
     optparse::make_option(
         c("-o", "--output_dir"),
         type = "character",
@@ -52,7 +52,7 @@ opt <- optparse::parse_args(opt_parser)
 ## Initialize variable
 GENE_SET <- opt$gene_set_file
 RANK_FILE <- opt$ranks
-#P_THRESH <- opt$p_threshold
+P_THRESH <- opt$p_threshold
 OUTPUT_DIR <- opt$output_dir
 
 
@@ -71,6 +71,8 @@ dir.create(OUTPUT_DIR, showWarnings = FALSE, recursive = TRUE)
 
 ## Gene set enrichment analysis
 rank_list <- get(load(RANK_FILE))
+column_to_merge <- "pathway" # possible variable to change when the headers are changing
+dataset <- "AUR" # possible variable to change when the headers are changing
 blues <- RColorBrewer::brewer.pal(n = 8, name = "Blues")
 pathways <- gmtPathways(GENE_SET)
 
@@ -83,12 +85,19 @@ if (class(rank_list) == "list") {
     df
    })
    list_of_bubble <- purrr::map(selected_gsea, ~ plot_bubble_plot(.x, blues))
+   list_for_tsv <- purrr::map(list_of_gsea, ~ {
+    df <- as.data.frame(.x)
+    df <- df[df$padj<P_THRESH, ]
+    df
+   })
+  df_for_tsv <- merge_enriched_pathways_list_into_df(list_for_tsv, column_to_merge, dataset)
 
 } else {
     list_of_gsea <- perform_gsea(rank_list, pathways)
     selected_gsea <- list_of_gsea[order(list_of_gsea$padj, na.last = TRUE, decreasing = FALSE),]
     selected_gsea <- selected_gsea[1:20,]
     list_of_bubble <- plot_bubble_plot(selected_gsea, blues)
+    df_for_tsv <- list_of_gsea[list_of_gsea$padj<P_THRESH, ]
     list_of_gsea <- list(list_of_gsea)
 }
 
@@ -98,6 +107,13 @@ save(
     file = file.path(OUTPUT_DIR, paste0("differential_genesets.RData")) # , P_THRESH,
 )
 
+data.table::fwrite(
+    df_for_tsv,
+    file = file.path(OUTPUT_DIR, "differential_genesets.tsv"),
+    sep = "\t",
+    col.names = FALSE,
+    row.names = FALSE
+)
 
 if (class(rank_list) == "list") {
     pdf(
