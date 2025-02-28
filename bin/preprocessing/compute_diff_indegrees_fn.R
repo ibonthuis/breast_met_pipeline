@@ -86,6 +86,14 @@ create_toptable_paired <- function(indegree_df, meta, patient_col, type_col){
 }
 
 
+create_toptable_paired_from_file <- function(indegree_file, meta_file, patient_col, type_col){
+  indegree_df <- read_indegree(indegree_file)
+  meta <- fread(meta_file)
+  meta <- match_metadata(meta)
+  diff_indegrees <- create_toptable_paired(indegree_df, meta, patient_col, type_col)
+  return(diff_indegrees)
+}
+
 
 ## The following functions are needed in case there are permutations to be run to select 
 ## specific metastases:
