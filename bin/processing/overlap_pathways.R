@@ -19,15 +19,16 @@ option_list <- list(
     optparse::make_option(
         c("-i", "--pathways"),
         type = "character",
+      #  action = "append",
         default = NULL,
         help = "Path to the differential genesets file.",
         metavar = "character"),
-    optparse::make_option(
-        c("-g", "--geneset"),
-        type = "character",
-        default = NULL,
-        help = "Path to the gene set file (gmt).",
-        metavar = "character"),
+    # optparse::make_option(
+    #     c("-g", "--geneset"),
+    #     type = "character",
+    #     default = NULL,
+    #     help = "Path to the gene set file (gmt).",
+        # metavar = "character"),
     # optparse::make_option(
     #     c("-t", "--type"),
     #     type = "character",
@@ -43,19 +44,20 @@ option_list <- list(
 )
 
 opt_parser <- optparse::OptionParser(option_list = option_list)
-opt <- optparse::parse_args(opt_parser)
+opt <- optparse::parse_args(opt_parser, positional_arguments = TRUE)
 
 ## Initialize variable
-PATHWAY_FILE <- opt$pathways
-GENESET_FILE <- opt$geneset
+PATHWAY_FILES <- opt$args
+#GENESET_FILE <- opt$geneset
 #DATA_TYPE <- opt$type
-OUTPUT_DIR <- opt$output_dir
+OUTPUT_DIR <- opt$options$output_dir
 
 ## Debug
-PATHWAY_FILE <- list("snakemake_results/differential_indegrees/cosgrove/differential_genesets.RData", "/storage/kuijjerarea/ine/projects/BRCA_MET/breast_met_pipeline/snakemake_results/differential_indegrees/aurora/differential_genesets.RData")
-# METADATA_FILE <- "data/geo_brca/metadata.csv"
+#PATHWAY_FILES <- list("/storage/kuijjerarea/ine/projects/BRCA_MET/breast_met_pipeline/snakemake_results/differential_indegrees/cosgrove/differential_genesets.RData", 
+#                        "/storage/kuijjerarea/ine/projects/BRCA_MET/breast_met_pipeline/snakemake_results/differential_indegrees/aurora/differential_genesets.RData")
 # OUTPUT_DIR <- "test"
 
+#PATHWAY_FILES <- as.list(PATHWAY_FILES)
 
 ## Functions
 source("bin/processing/overlap_pathways_fn.R")
@@ -63,16 +65,15 @@ source("bin/processing/overlap_pathways_fn.R")
 ## Create output directory
 dir.create(OUTPUT_DIR, showWarnings = FALSE, recursive = TRUE)
 
-enriched_pathways1 <- PATHWAY_FILE[[1]]
-enriched_pathways2 <- PATHWAY_FILE[[2]]
-ds1 <- "COS"
-ds2 <- "AUR"
+PATHWAY_FILES <- strsplit(PATHWAY_FILES, split = ",")
+dss <- list("COS", "AUR")
+column_to_merge <- "pathway"
+all_pathways <- merge_all_pathways(PATHWAY_FILES, dss, column_to_merge)
 
-all_pathways <- merge_all_pathways(enriched_pathways1, enriched_pathways2, ds1, ds2, "pathway")
-# head(enriched_pathways2[[1]])
-# class(enriched_pathways2[[1]])
-
-# test <- merge_gsea_results(enriched_pathways2, "AUR", "pathway")
-
-# enr <- get(load(enriched_pathways2))
-# head(enr)
+fwrite(
+    all_pathways,
+    file = file.path(OUTPUT_DIR, "overlapping_pathways_all.tsv"),
+    sep = "\t",
+    col.names = FALSE,
+    row.names = FALSE
+)
