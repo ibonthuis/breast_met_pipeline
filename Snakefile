@@ -25,6 +25,7 @@ BASE_OUTPUT_DIR = config["output_dir"]
 DIFFERENTIAL_INDEGREE_OUTPUT_DIR = os.path.join(BASE_OUTPUT_DIR, "differential_indegrees")
 DIMENSIONALITY_REDUCTION_OUTPUT_DIR = os.path.join(BASE_OUTPUT_DIR, "dimensionality_reduction")
 OVERLAPPING_PATHWAYS_DIR = os.path.join(BASE_OUTPUT_DIR, "overlapping_pathways")
+PATHWAY_SPECIFIC_SUBSETS_DIR = os.path.join(BASE_OUTPUT_DIR, "pathway_specific_subsets")
 
 ## Input files ##
 INPUT_METADATA = os.path.join(DATA_DIR, "{dataset_type}", "metadata.csv")
@@ -34,6 +35,7 @@ GENE_SET_FILE = config["gene_set_file"]
 ## Other inputs ##
 VIS_VAR = config["visualisation_var"]
 P_THRESH = config["p_threshold"]
+PATHWAY = config["pathway_of_interest"]
 
 ## Output files ##
 # DIFFERENTIAL_INDEGREES_TAB = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "differential_indegrees.tsv")
@@ -42,11 +44,11 @@ DIFFERENTIAL_INDEGREES_RANKED_RDATA = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_
 ENRICHMENT_RESULTS_RDATA = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "differential_genesets.RData")
 ENRICHMENT_RESULTS_TSV = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "differential_genesets.tsv")
 OVERLAPPING_RESULTS_TSV = os.path.join(OVERLAPPING_PATHWAYS_DIR, "overlapping_pathways_all.tsv")
+PATHWAY_SPECIFIC_INDEGREES = os.path.join(PATHWAY_SPECIFIC_SUBSETS_DIR, "{dataset_type}", "diff_indegrees_pathway_specific_genes.RData")
 
 ## Output plots ##
 PCA_PLOT_PDF = os.path.join(DIMENSIONALITY_REDUCTION_OUTPUT_DIR, "{dataset_type}", "PCA_{visualisation_var}_pc12.pdf") # In the R script it's written as follows:  pdf(pcaplot, file.path(OUTPUT_DIR, paste0("PCA", VARIABLE, "pc12.pdf")))
 ENRICHMENT_RESULTS_PDF = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "enrichment_bubble_plot_.pdf")
-
 
 ## Rule ALL ##
 rule all:
@@ -69,9 +71,9 @@ rule compute_differential_indegrees:
     Inputs
     ------
     INPUT_METADATA:
-        blalbla
+        Path to the metadata file containing sample information.
     INPUT_INDEGREES:
-        blablabla
+        Path to the file containing indegree data for analysis.
     Outputs
     -------
     DIFFERENTIAL_INDEGREES_TAB:
@@ -106,9 +108,9 @@ rule perform_dimensionality_reduction:
     Inputs
     ------
     INPUT_METADATA:
-        blalbla
+        Path to the metadata file containing sample information.
     INPUT_INDEGREES:
-        blablabla
+        Path to the file containing indegree data for analysis.
     VIS_VAR:
         Variable to visualize.
     Outputs
@@ -223,4 +225,42 @@ rule find_overlapping_pathways:
         Rscript {params.bin}/overlap_pathways.R \
             -i {params.pathways} \
             -o {params.output_dir}
-#         """
+         """
+
+rule filter_indegrees_on_pathway:
+    """
+    This rule takes indegrees and one specific pathway as input and computes differential indegrees for that specific pathway.
+
+    Inputs
+    ------
+    INPUT_METADATA:
+        Path to the metadata file containing sample information.
+    INPUT_INDEGREES:
+        Path to the file containing indegree data for analysis.
+    Outputs
+    -------
+    PATHWAY_SPECIFIC_INDEGREES:
+        Table or list of tables containing the indegrees with differential values between primary and metastasis. 
+    """
+    input:
+        metadata = INPUT_METADATA, \
+        indegrees = INPUT_INDEGREES
+    output:
+        PATHWAY_SPECIFIC_INDEGREES
+    message:
+        "; Running pathway specific indegree filtering."
+    params:
+        bin = os.path.join(config["bin"], "processing"), \
+        output_dir = os.path.join(BASE_OUTPUT_DIR, "pathway_specific_subsets", "{dataset_type}"), \
+        pathway = PATWHAY,
+        genes = GENE_SET_FILE
+    shell:
+        """
+        echo "; I love indegrees in snakemake" ;
+        Rscript {params.bin}/filter_indegrees_pathway_specific_genes.R \
+            -i {input.indegrees} \
+            -m {params.metadata} \
+            -p {params.pathway} \
+            -G {params.genes} \
+            -o {params.output_dir}
+        """
