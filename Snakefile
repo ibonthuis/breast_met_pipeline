@@ -23,6 +23,7 @@ DATA_DIR = config["data_dir"]
 DATASET_NAMES = config["types"]
 BASE_OUTPUT_DIR = config["output_dir"]
 DIFFERENTIAL_INDEGREE_OUTPUT_DIR = os.path.join(BASE_OUTPUT_DIR, "differential_indegrees")
+LIMMA_COVARIATE_CORRECTION_DIR = os.path.join(BASE_OUTPUT_DIR, "limma_covariate_correction")
 DIMENSIONALITY_REDUCTION_OUTPUT_DIR = os.path.join(BASE_OUTPUT_DIR, "dimensionality_reduction")
 OVERLAPPING_PATHWAYS_DIR = os.path.join(BASE_OUTPUT_DIR, "overlapping_pathways")
 PATHWAY_SPECIFIC_SUBSETS_DIR = os.path.join(BASE_OUTPUT_DIR, "pathway_specific_subsets")
@@ -50,6 +51,9 @@ ENRICHMENT_RESULTS_TSV = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{datase
 OVERLAPPING_RESULTS_TSV = os.path.join(OVERLAPPING_PATHWAYS_DIR, "overlapping_pathways_all.tsv")
 PATHWAY_SPECIFIC_INDEGREES = os.path.join(PATHWAY_SPECIFIC_SUBSETS_DIR, "{dataset_type}", "diff_indegrees_pathway_specific_genes.RData")
 #PATHWAY_SPECIFIC_INDEGREES_TSV = os.path.join(PATHWAY_SPECIFIC_SUBSETS_DIR, "{dataset_type}", "diff_indegrees_pathway_specific_genes.tsv")
+CORRECTED_TSV = os.path.join(LIMMA_COVARIATE_CORRECTION_DIR, "{dataset_type}", "corrected_tumor_purity_differential_indegrees.tsv")
+CORRECTED_RDATA = os.path.join(LIMMA_COVARIATE_CORRECTION_DIR, "{dataset_type}", "ranked_corrected_tumor_purity_differential_indegrees.RData")
+
 
 ## Output plots ##
 PCA_PLOT_PDF = os.path.join(DIMENSIONALITY_REDUCTION_OUTPUT_DIR, "{dataset_type}", "PCA_{visualisation_var}_pc12.pdf") # In the R script it's written as follows:  pdf(pcaplot, file.path(OUTPUT_DIR, paste0("PCA", VARIABLE, "pc12.pdf")))
@@ -63,6 +67,8 @@ rule all:
         expand(ENRICHMENT_RESULTS_RDATA, dataset_type = DATASET_NAMES),\
         expand(ENRICHMENT_RESULTS_TSV, dataset_type = DATASET_NAMES), \
         expand(ENRICHMENT_RESULTS_PDF, dataset_type = DATASET_NAMES), \
+        expand(CORRECTED_TSV, dataset_type = DATASET_NAMES), \
+        expand(CORRECTED_RDATA, dataset_type = DATASET_NAMES), \
         OVERLAPPING_RESULTS_TSV
 
         
@@ -196,7 +202,54 @@ rule run_gsea_on_ranks:
             -n {params.nr_pathways} \
             -o {params.output_dir}
         """
-    
+
+rule compute_covariate_diff_indegrees:
+    """
+    This rule computes covariate-corrected differential indegrees using metadata and indegree data.
+
+    Inputs
+    ------
+    metadata:
+        Path to the metadata file containing sample information, including covariates for correction.
+    indegrees:
+        Path to the file containing indegree data for analysis.
+
+    Outputs
+    -------
+    corrected_tsv:
+        A TSV file containing the covariate-corrected differential indegrees.
+    corrected_rdata:
+        An RData file containing the ranked covariate-corrected differential indegrees.
+
+    Params
+    ------
+    bin:
+        Path to the directory containing the preprocessing scripts.
+    """
+    input:
+        metadata = INPUT_METADATA,
+        indegrees = INPUT_INDEGREES
+    output:
+        CORRECTED_TSV ,
+        CORRECTED_RDATA 
+    params:
+        bin = os.path.join(config["bin"], "preprocessing"),
+        output_dir = os.path.join(LIMMA_COVARIATE_CORRECTION_DIR, "{dataset_type}"),
+
+        covariate = CORRECTION_VAR
+    run:
+        if config["run_covariate_correction"]:
+            shell("""
+                Rscript {params.bin}/compute_covariate_diff_indegrees.R \
+                    -i {input.indegrees} \
+                    -m {input.metadata} \
+                    -c {params.covariate} \
+                    -o {params.output_dir}
+            """)
+        else:
+            print("Skipping covariate correction as per configuration.")
+
+
 rule find_overlapping_pathways:
     """
     This rule takes the significant pathways output from both datasets as computed by run_gsea_on_ranks rule. 

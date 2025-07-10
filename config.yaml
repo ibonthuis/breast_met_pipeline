@@ -14,6 +14,7 @@ p_threshold: 0.05
 pathway_of_interest: "REACTOM_INTERFERON_SIGNALING"
 correction_variable_limma: "tumor_purity"
 nr_of_pathways: 10
+run_covariate_correction: TRUE
 
 # cancer_type: ["breast", "prostate"]
 
