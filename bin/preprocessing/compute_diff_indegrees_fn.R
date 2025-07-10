@@ -134,8 +134,8 @@ create_toptable_paired_plus_correction <- function(indegree_df, meta, patient_co
 # design <- model.matrix(~0 + patient + time:treatment)
 # design <- design[,-grep("timewk0", colnames(design))] # full rank
 
-type_col <- "sample_type"
-covariates <- "tumor_purity"
+# type_col <- "sample_type"
+# covariates <- "tumor_purity"
 # indegree_df <- indegrees_paired
 # head(indegree_df)
 
@@ -155,9 +155,9 @@ run_limma <- function(indegree_df, metadata, covariates, type_col) {
   fit2 <- eBayes(fit2)
   toptable <- limma::topTable(fit2, coef = "prim_vs_met", number = Inf)
   #toptable <- toptable[order(row.names(toptable)), ]
-head(toptable, n = 10)
-  print(contrasts)
-  print(fit)
+# head(toptable, n = 10)
+#   print(contrasts)
+#   print(fit)
   return(toptable)
 }
 
