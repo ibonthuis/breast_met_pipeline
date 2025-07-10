@@ -53,3 +53,7 @@ rsconnect/
 .snakemake/
 data/
 snakemake_results/
+subselection_diff_indegrees/
+interferon_signaling_diff_aurora_edges/
+interferon_signaling_diff_aurora_indegrees/
+confounding_factor_diff_indegrees/

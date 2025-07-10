@@ -4,7 +4,8 @@ required_libraries <- c(
     "dplyr",
     "optparse",
     "rlang",
-    "purrr")
+    "purrr",
+    "stringr")
 
 for (lib in required_libraries) {
   suppressPackageStartupMessages(library(lib, character.only = TRUE, quietly = TRUE))
@@ -70,10 +71,12 @@ dss <- list("COS", "AUR")
 column_to_merge <- "pathway"
 all_pathways <- merge_all_pathways(PATHWAY_FILES, dss, column_to_merge)
 
+
+
 fwrite(
     all_pathways,
     file = file.path(OUTPUT_DIR, "overlapping_pathways_all.tsv"),
     sep = "\t",
-    col.names = FALSE,
+    col.names = TRUE,
     row.names = FALSE
 )

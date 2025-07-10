@@ -23,7 +23,7 @@ perform_gsea <- function(diff_results, gene_set) {
   ranks <- tibble::deframe(diff_results)
   set.seed(1)
   fgseaRes <- fgseaMultilevel(pathways=gene_set, stats=ranks, maxSize=1000)
-  fgseaRes <- fgseaRes[, c(1:7)]
+ # fgseaRes <- fgseaRes[, c(1:7)]
  # fgseaRes <- fgseaRes[fgseaRes$padj<p_threshold,] 
   return(fgseaRes)
 }
@@ -48,13 +48,27 @@ perform_gsea <- function(diff_results, gene_set) {
 #' }
 #'
 #' @export
-plot_bubble_plot <- function(gsea_result, blues) {
+plot_bubble_plot <- function(gsea_result, blues, nr_of_pathways) {
   gsea_result <- as.data.frame(gsea_result)
-  g <- ggplot(gsea_result, aes(x=padj,y=pathway,size=size, fill = ES))+
+  # gsea_result <- gsea_result %>%
+  #                   mutate(log_padj = log(padj))
+  gsea_result <- gsea_result %>%
+                  mutate(log_padj = -log(padj)) %>%
+                  dplyr::arrange(desc(log_padj), )
+  gsea_result <- gsea_result[1:nr_of_pathways, ]
+    gsea_result <- gsea_result %>%
+                  dplyr::arrange(log_padj, )
+  gsea_result$pathway <- factor(gsea_result$pathway, levels = gsea_result$pathway)
+  #gsea_result <- gsea_result[1:nr_of_pathways, ]
+
+  g <- ggplot(gsea_result, aes(x=log_padj,y=pathway,size=size, fill = ES))+
           geom_point(shape=21, fg="grey")+ 
           scale_size_area(max_size=10)+
           scale_fill_gradient2(high = "red", mid = "white", low = blues[length(blues)])+
-          theme(axis.text.y = element_text(size = 14), axis.title.y = element_blank(), )
+          theme(text = element_text(size = 20), axis.text.y = element_text(size = 14), axis.title.y = element_blank()
+          #axis.title.x = element_text(size = 16)
+          )+
+          xlab("-log(FDR)")
   return(g)
 }
 

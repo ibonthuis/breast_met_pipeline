@@ -29,14 +29,19 @@ option_list <- list(
         c("-i", "--ranks"),
         type = "character",
         default = NULL,
-        help = "Path to the ranked file. But snakemake will know this because it was 
-        built upstream",
+        help = "Path to the ranked file. But snakemake will know this because it was built upstream",
         metavar = "character"),
     optparse::make_option(
         c("-p", "--p_threshold"),
         type = "character",
         default = NULL,
         help = "Threshold value for significance in adjusted p-values for the enriched gene sets",
+        metavar = "numeric"),
+    optparse::make_option(
+        c("-n", "--nr_pathways"),
+        type = "character",
+        default = NULL,
+        help = "Number of pathways to visualize on the bubble plot",
         metavar = "numeric"),
     optparse::make_option(
         c("-o", "--output_dir"),
@@ -54,13 +59,20 @@ GENE_SET <- opt$gene_set_file
 RANK_FILE <- opt$ranks
 P_THRESH <- opt$p_threshold
 OUTPUT_DIR <- opt$output_dir
+N_PATHWAYS <- opt$nr_pathways
 
 
 ## Debug
 # GENE_SET <- "data/gene_sets/c2.cp.reactome.v5.0.symbols.gmt"
-# RANK_FILE <- "test_again/differential_indegrees.rnk"
+# RANK_FILE <- "snakemake_results/differential_indegrees/cosgrove/differential_indegrees_rank_file.RData"
 # P_THRESH <- 0.05
 # OUTPUT_DIR <- "test"
+
+# GENE_SET <- "data/gene_sets/c2.cp.reactome.v5.0.symbols.gmt"
+# RANK_FILE <- "snakemake_results/differential_indegrees/aurora/differential_indegrees_rank_file.RData"
+# P_THRESH <- 0.05
+# OUTPUT_DIR <- "test"
+# N_PATHWAYS <- 10
 
 
 ## Functions
@@ -71,6 +83,7 @@ dir.create(OUTPUT_DIR, showWarnings = FALSE, recursive = TRUE)
 
 ## Gene set enrichment analysis
 rank_list <- get(load(RANK_FILE))
+#rank_list <- fread(RANK_FILE)
 column_to_merge <- "pathway" # possible variable to change when the headers are changing
 dataset <- "AUR" # possible variable to change when the headers are changing
 blues <- RColorBrewer::brewer.pal(n = 8, name = "Blues")
@@ -84,23 +97,23 @@ if (class(rank_list) == "list") {
     df <- df[1:20, ]
     df
    })
-   list_of_bubble <- purrr::map(selected_gsea, ~ plot_bubble_plot(.x, blues))
+   list_of_bubble <- purrr::map(selected_gsea, ~ plot_bubble_plot(.x, blues, N_PATHWAYS))
    list_for_tsv <- purrr::map(list_of_gsea, ~ {
     df <- as.data.frame(.x)
     df <- df[df$padj<P_THRESH, ]
     df
    })
   df_for_tsv <- merge_enriched_pathways_list_into_df(list_for_tsv, column_to_merge, dataset)
-
+ # head(df_for_tsv)
+#  class(df_for_Tsv)
 } else {
     list_of_gsea <- perform_gsea(rank_list, pathways)
     selected_gsea <- list_of_gsea[order(list_of_gsea$padj, na.last = TRUE, decreasing = FALSE),]
-    selected_gsea <- selected_gsea[1:20,]
-    list_of_bubble <- plot_bubble_plot(selected_gsea, blues)
+    selected_gsea <- selected_gsea[1:60,]
+    list_of_bubble <- plot_bubble_plot(selected_gsea, blues, N_PATHWAYS)
     df_for_tsv <- list_of_gsea[list_of_gsea$padj<P_THRESH, ]
     list_of_gsea <- list(list_of_gsea)
 }
-
 
 save(
     list_of_gsea,
@@ -129,7 +142,7 @@ if (class(rank_list) == "list") {
 } else {
     pdf(
         file.path(OUTPUT_DIR, paste0("enrichment_bubble_plot_.pdf")),
-        #file.path(OUTPUT_DIR, paste0("enrichment_bubble_plot_", P_THRESH, ".pdf")),
+        file.path(OUTPUT_DIR, paste0("enrichment_bubble_plot_", P_THRESH, ".pdf")),
         width = 18,
         height = 10)
    show(list_of_bubble)

@@ -12,6 +12,8 @@ visualisation_var: "sample_type"
 #ranks: ""
 p_threshold: 0.05
 pathway_of_interest: "REACTOM_INTERFERON_SIGNALING"
+correction_variable_limma: "tumor_purity"
+nr_of_pathways: 10
 
 # cancer_type: ["breast", "prostate"]
 
