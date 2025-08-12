@@ -31,6 +31,7 @@ PATHWAY_SPECIFIC_SUBSETS_DIR = os.path.join(BASE_OUTPUT_DIR, "pathway_specific_s
 ## Input files ##
 INPUT_METADATA = os.path.join(DATA_DIR, "{dataset_type}", "metadata.csv")
 INPUT_INDEGREES = os.path.join(DATA_DIR, "{dataset_type}", "filtered_indegree.csv")
+#INPUT_INDEGREES = os.path.join(DATA_DIR, "{dataset_type}", "filtered_expression.tsv")
 GENE_SET_FILE = config["gene_set_file"]
 
 ## Other inputs ##
@@ -49,6 +50,7 @@ COVARIATE_CORRECTED_DIFF_INDEGREES_RANKED_RDATA = os.path.join(DIFFERENTIAL_INDE
 ENRICHMENT_RESULTS_RDATA = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "differential_genesets.RData")
 ENRICHMENT_RESULTS_TSV = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "differential_genesets.tsv")
 OVERLAPPING_RESULTS_TSV = os.path.join(OVERLAPPING_PATHWAYS_DIR, "overlapping_pathways_all.tsv")
+OVERLAPPING_VENN_PDF = os.path.join(OVERLAPPING_PATHWAYS_DIR, "overlapping_pathways_metastasis.pdf")
 PATHWAY_SPECIFIC_INDEGREES = os.path.join(PATHWAY_SPECIFIC_SUBSETS_DIR, "{dataset_type}", "diff_indegrees_pathway_specific_genes.RData")
 #PATHWAY_SPECIFIC_INDEGREES_TSV = os.path.join(PATHWAY_SPECIFIC_SUBSETS_DIR, "{dataset_type}", "diff_indegrees_pathway_specific_genes.tsv")
 CORRECTED_TSV = os.path.join(LIMMA_COVARIATE_CORRECTION_DIR, "{dataset_type}", "corrected_tumor_purity_differential_indegrees.tsv")
@@ -59,18 +61,26 @@ CORRECTED_RDATA = os.path.join(LIMMA_COVARIATE_CORRECTION_DIR, "{dataset_type}",
 PCA_PLOT_PDF = os.path.join(DIMENSIONALITY_REDUCTION_OUTPUT_DIR, "{dataset_type}", "PCA_{visualisation_var}_pc12.pdf") # In the R script it's written as follows:  pdf(pcaplot, file.path(OUTPUT_DIR, paste0("PCA", VARIABLE, "pc12.pdf")))
 ENRICHMENT_RESULTS_PDF = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "enrichment_bubble_plot_.pdf")
 
+def produce_rule_all():
+    input_list = []
+    input_list.extend(expand(INPUT_METADATA, dataset_type = DATASET_NAMES))
+    input_list.extend(expand(INPUT_INDEGREES, dataset_type = DATASET_NAMES))
+    input_list.extend(expand(DIFFERENTIAL_INDEGREES_RDATA, dataset_type = DATASET_NAMES))
+    input_list.extend(expand(PCA_PLOT_PDF, dataset_type = DATASET_NAMES, visualisation_var = VIS_VAR))
+    input_list.extend(expand(ENRICHMENT_RESULTS_RDATA, dataset_type = DATASET_NAMES))
+    input_list.extend(expand(ENRICHMENT_RESULTS_TSV, dataset_type = DATASET_NAMES))
+    input_list.extend(expand(ENRICHMENT_RESULTS_PDF, dataset_type = DATASET_NAMES))
+    input_list.append(OVERLAPPING_RESULTS_TSV)
+    if config["run_covariate_correction"]:
+        input_list.extend(expand(CORRECTED_TSV, dataset_type = DATASET_NAMES))
+        input_list.extend(expand(CORRECTED_RDATA, dataset_type = DATASET_NAMES))
+    return input_list
+
 ## Rule ALL ##
 rule all:
     input:
-        expand(DIFFERENTIAL_INDEGREES_RDATA, dataset_type = DATASET_NAMES), \
-        expand(PCA_PLOT_PDF, dataset_type = DATASET_NAMES, visualisation_var = VIS_VAR), \
-        expand(ENRICHMENT_RESULTS_RDATA, dataset_type = DATASET_NAMES),\
-        expand(ENRICHMENT_RESULTS_TSV, dataset_type = DATASET_NAMES), \
-        expand(ENRICHMENT_RESULTS_PDF, dataset_type = DATASET_NAMES), \
-        expand(CORRECTED_TSV, dataset_type = DATASET_NAMES), \
-        expand(CORRECTED_RDATA, dataset_type = DATASET_NAMES), \
-        OVERLAPPING_RESULTS_TSV
-
+        produce_rule_all()
+    #    OVERLAPPING_VENN_PDF
         
 
 ## Rules ##
@@ -93,8 +103,11 @@ rule compute_differential_indegrees:
         blablabla in RData
     """
     input:
+        # metadata = expand(INPUT_METADATA, data_type = "{dataset_type}"), \
+        # indegrees = expand(INPUT_INDEGREES, data_type = "{dataset_type}")
         metadata = INPUT_METADATA, \
         indegrees = INPUT_INDEGREES
+
     output:
         # DIFFERENTIAL_INDEGREES_TAB, \
         DIFFERENTIAL_INDEGREES_RDATA, \
@@ -141,8 +154,6 @@ rule perform_dimensionality_reduction:
         PCA_PLOT_PDF
     message:
         "; Running dimensionality reduction of indegrees on {input}."
-    container:
-        config["container"]
     params:
         bin = os.path.join(config["bin"], "preprocessing"), \
         output_dir = os.path.join(BASE_OUTPUT_DIR, "dimensionality_reduction", "{dataset_type}"), \
@@ -150,6 +161,8 @@ rule perform_dimensionality_reduction:
       #  dataset_type = "{dataset_type}"
     shell:
         """
+
+
         Rscript {params.bin}/perform_dimensionality_reduction.R \
             -i {input.indegrees} \
             -m {input.metadata} \
@@ -177,6 +190,8 @@ rule run_gsea_on_ranks:
     """
     input:
         #ranks = COVARIATE_CORRECTED_DIFF_INDEGREES_RANKED_RDATA
+        ranks = DIFFERENTIAL_INDEGREES_RANKED_RDATA, \
+        genes = GENE_SET_FILE
     output:
         # rdata = expand(ENRICHMENT_RESULTS_RDATA, dataset_type="{dataset_type}"), \
         # pdf = expand(ENRICHMENT_RESULTS_PDF, dataset_type="{dataset_type}")
@@ -188,16 +203,14 @@ rule run_gsea_on_ranks:
     params:
         bin = os.path.join(config["bin"], "preprocessing"), \
         output_dir = os.path.join(BASE_OUTPUT_DIR, "differential_indegrees", "{dataset_type}"), \
-        p_threshold = P_THRESH,
-        genes = GENE_SET_FILE,
-        ranks = DIFFERENTIAL_INDEGREES_RANKED_RDATA,
+        p_threshold = P_THRESH, \
         nr_pathways = NR_PATHWAYS
     shell:
         """
         echo "; I love snakemake" ;
         Rscript {params.bin}/compute_gse.R \
-            -i {params.ranks} \
-            -g {params.genes} \
+            -i {input.ranks} \
+            -g {input.genes} \
             -p {params.p_threshold} \
             -n {params.nr_pathways} \
             -o {params.output_dir}
@@ -235,19 +248,18 @@ rule compute_covariate_diff_indegrees:
     params:
         bin = os.path.join(config["bin"], "preprocessing"),
         output_dir = os.path.join(LIMMA_COVARIATE_CORRECTION_DIR, "{dataset_type}"),
-
         covariate = CORRECTION_VAR
     run:
-        if config["run_covariate_correction"]:
-            shell("""
-                Rscript {params.bin}/compute_covariate_diff_indegrees.R \
-                    -i {input.indegrees} \
-                    -m {input.metadata} \
-                    -c {params.covariate} \
-                    -o {params.output_dir}
-            """)
-        else:
-            print("Skipping covariate correction as per configuration.")
+
+        """
+        echo "; I love snakemake" ;
+        Rscript {params.bin}/compute_covariate_diff_indegrees.R \
+            -i {input.indegrees} \
+            -m {input.metadata} \
+            -c {params.covariate} \
+            -o {params.output_dir}
+        """
+
 
 
 rule find_overlapping_pathways:
@@ -273,22 +285,24 @@ rule find_overlapping_pathways:
 
     """
     input:
+        pathways = ','.join(expand(ENRICHMENT_RESULTS_RDATA, dataset_type=DATASET_NAMES))
     output:
         OVERLAPPING_RESULTS_TSV #, \
         # OVERLAPPING_PATHWAYS_HEATMAP_PDF, \
         # SCATTERPLOT_PATHWAYS_PDF
+      #  OVERLAPPING_VENN_PDF
     message:
         "; Overlapping the pathways"
     params:
         bin = os.path.join(config["bin"], "processing"), \
-        output_dir = os.path.join(BASE_OUTPUT_DIR, "overlapping_pathways"), \
-        pathways = expand(ENRICHMENT_RESULTS_RDATA, dataset_type=DATASET_NAMES)
+        output_dir = os.path.join(BASE_OUTPUT_DIR, "overlapping_pathways")
+     
     shell:
         """
         echo "; I love snakemake more" ;
-        echo {params.pathways}
+        echo {input.pathways}
         Rscript {params.bin}/overlap_pathways.R \
-            -i {params.pathways} \
+            --pathways {input.pathways} \
             -o {params.output_dir}
          """
 
