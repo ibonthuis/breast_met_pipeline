@@ -61,7 +61,8 @@ data/input_data/aurora/
 # data/input_data/aurora/metadata.csv
 data/input_data/cosgrove/
 #metadata.csv
-
+lung_mets_gsea/
+lung_mets_gsea_more_pathways/
 
 snakemake_results/
 snakemake_results_expression/
