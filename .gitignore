@@ -51,7 +51,18 @@ po/*~
 rsconnect/
 
 .snakemake/
-data/
+#data/
+data/gene_sets/c2.cp.reactome.v5.0.symbols.gmt
+data/input_data/aurora/
+#filtered_expression.tsv
+#data/input_data/aurora/filtered_indegree.csv
+# data/input_data/cosgrove/filtered_expression.tsv
+# data/input_data/cosgrove/filtered_indegree.csv
+# data/input_data/aurora/metadata.csv
+data/input_data/cosgrove/
+#metadata.csv
+
+
 snakemake_results/
 snakemake_results_expression/
 subselection_diff_indegrees/
