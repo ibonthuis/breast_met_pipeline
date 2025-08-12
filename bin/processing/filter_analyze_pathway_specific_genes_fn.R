@@ -12,16 +12,13 @@ select_genes_from_pathway_of_interest <- function(geneset_list, pathway_of_inter
 }
 
 
-
-
 # filter any df, such as edges, indegree and expression matrix with the genes in the rownames 
 filter_df_by_pathway_of_interest <- function(df, genes_of_pathway_of_interest) {
     filtered_indegrees <- df[rownames(df) %in% genes_of_pathway_of_interest, ]
     return(filtered_indegrees)
 }
 
-filter_indegree_file <- function(gene_set_file, pathway_of_interest, indegree_file) {
-    indegree_df <- read_indegree(indegree_file)
+filter_indegree_df <- function(gene_set_file, pathway_of_interest, indegree_df) {
     gene_set <- reading_gene_set_file(gene_set_file)
     genes <- select_genes_from_pathway_of_interest(gene_set, pathway_of_interest)
     df_filtered <- filter_df_by_pathway_of_interest(indegree_df, genes)
@@ -35,22 +32,83 @@ read_edge_file <- function(edge_file) {
     return(edge_df)
 }
 
-filter_edges_by_pathway_of_interest <- function(df_edges, pathway_of_interest) {
+filter_edges_by_pathway_of_interest <- function(df_edges, gene_set_file, pathway_of_interest) {
     gene_set <- reading_gene_set_file(gene_set_file)
     genes <- select_genes_from_pathway_of_interest(gene_set, pathway_of_interest)
+    df_edges <- as_tibble(df_edges)
     second_column <- colnames(df_edges)[2]
     filtered_df_edges <- df_edges %>%
         filter(!!rlang::sym(second_column) %in% genes)
     return(filtered_df_edges)
 }
 
+##filter_edges_by_pathway_genes <- function(df_edges, geneset_list, pathwa)
+
+
+# This function is meant for the cases with an unequal amount of metastases and primaries, so that a proper paired analysis can be performed. I can use paired_limma_for_subsets.R as a basis for making subsets. also don't forget R/processing_post/filter_pathway_specific_edges.R
+# maybe make function first to select colnames from every permutation
+
+
+read_indegrees_from_permutation <- function(permutation_indegrees_file) {
+    indegree_perm_list <- get(load(permutation_indegrees_file))
+    return(indegree_perm_list)
+}
+
+read_indegree <- function(indegree_file) {
+  # Reading in in- or outdegree file and making gene names the rownames. Returns the degree dataframe
+  degree <- data.table::fread(indegree_file)
+  degree <- as.data.frame(degree)
+  rownames(degree) <- degree[, 1]
+  degree[, 1] <- NULL
+  return(degree)
+}
+
+
+
+
+# read_indegree_if <- function(indegree_file) {
+#     indegrees <- ifelse(
+#         stringr::str_detect(indegree_file, ".RData"),
+#         read_indegrees_from_permutation(indegree_file),
+#         read_indegree(indegree_file)
+#     )
+#     return(indegrees)
+# }
+
+read_indegree_if <- function(indegree_file) {
+    if(str_detect(indegree_file, ".RData") == TRUE){
+        indegrees <-  read_indegrees_from_permutation(indegree_file)
+    } else {
+        indegrees <-  read_indegree(indegree_file)
+        indegrees <- list(indegrees)
+    }
+    return(indegrees)
+}
+
+
+# indegree_df_filtered, in case this function is performed on a list of indegrees (indegree_perm_list)
+select_column_names <- function(indegree_df_filtered) {
+    columns_of_interest <- colnames(indegree_df_filtered)
+    return(columns_of_interest)
+}
+
+select_edges_for_permutations <- function(filtered_df_edges, columns_of_interest) {
+    filtered_df_edges <- filtered_df_edges[, c(columns_of_interest)]
+    return(filtered_df_edges)
+}
+
+
+
 
 prep_edge_df_for_differential_analysis <- function(filtered_df_edges) {
-    filtered_df_edges <- as.data.frame(filtered_df_edges)
+   # filtered_df_edges <- tibble::as_tibble(filtered_df_edges)
+   filtered_df_edges <- as.data.frame(filtered_df_edges)
     second_column <- colnames(filtered_df_edges)[2]
     first_column <- colnames(filtered_df_edges)[1]
+    filtered_df_edges$new_rownames <- paste(filtered_df_edges[[first_column]], filtered_df_edges[[second_column]], sep = "_")
 
-    rownames(filtered_df_edges) <- paste(filtered_df_edges[[first_column]], filtered_df_edges[[second_column]], sep = "_")
+    rownames(filtered_df_edges) <- filtered_df_edges$new_rownames
+    filtered_df_edges$new_rownames <- NULL
     filtered_df_edges[[first_column]] <- NULL
     filtered_df_edges[[second_column]] <- NULL
     return(filtered_df_edges)

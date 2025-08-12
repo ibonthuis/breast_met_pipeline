@@ -8,16 +8,17 @@ data_dir: "data/input_data"
 types: ["aurora", "cosgrove"]
 
 gene_set_file: "data/gene_sets/c2.cp.reactome.v5.0.symbols.gmt"
+#gene_set_file: "data/gene_sets/gene_set.gmt"
 visualisation_var: "sample_type"
 #ranks: ""
 p_threshold: 0.05
-pathway_of_interest: "REACTOM_INTERFERON_SIGNALING"
+pathway_of_interest: "REACTOME_INTERFERON_SIGNALING"
 correction_variable_limma: "tumor_purity"
 nr_of_pathways: 10
-run_covariate_correction: TRUE
+run_covariate_correction: False
 
 # cancer_type: ["breast", "prostate"]
 
 ## Results directory:
-output_dir: "snakemake_results"
+output_dir: "snakemake_results_code_review_test_onecore_false"
 
