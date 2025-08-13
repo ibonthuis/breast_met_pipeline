@@ -18,11 +18,11 @@ options(stringsAsFactors = FALSE)
 ### Command line options
 option_list <- list(
     optparse::make_option(
-        c("-i", "--pathways"),
+        c("-p", "--pathways"),
         type = "character",
      #   action = "append",
         default = NULL,
-        help = "Path to the differential genesets file.",
+        help = "Paths to the differential genesets file.",
         metavar = "character"),
     
     # optparse::make_option(
@@ -52,7 +52,8 @@ opt <- optparse::parse_args(opt_parser)
 PATHWAY_FILES <- opt$pathways
 #GENESET_FILE <- opt$geneset
 #DATA_TYPE <- opt$type
-OUTPUT_DIR <- opt$options$output_dir
+OUTPUT_PATH <- opt$output_dir
+print(OUTPUT_PATH)
 
 ## Debug
 # PATHWAY_FILES <- list("/storage/kuijjerarea/ine/projects/BRCA_MET/breast_met_pipeline/snakemake_results/differential_indegrees/cosgrove/differential_genesets.RData", 
@@ -74,7 +75,8 @@ OUTPUT_DIR <- opt$options$output_dir
 source("bin/processing/overlap_pathways_fn.R")
 
 ## Create output directory
-dir.create(OUTPUT_DIR, showWarnings = FALSE, recursive = TRUE)
+# dir.create(OUTPUT_DIR, showWarnings = FALSE, recursive = TRUE)
+
 print(PATHWAY_FILES)
 PATHWAY_FILES <- unlist(strsplit(PATHWAY_FILES, split = ","))
 print(PATHWAY_FILES)
@@ -82,6 +84,8 @@ print(PATHWAY_FILES)
 dss <- list("COS", "AUR")
 column_to_merge <- "pathway"
 all_pathways <- merge_all_pathways(PATHWAY_FILES, dss, column_to_merge)
+print(head(all_pathways))
+print(class(all_pathways))
 # er gaat al wat mis voor merge_gsea_results want head all_pathways, geeft nog maar alleen voor AUR1 de resultaten.
 #head(all_pathways)
 
@@ -109,10 +113,11 @@ all_pathways <- merge_all_pathways(PATHWAY_FILES, dss, column_to_merge)
 
 
 # venn <- venn_plot(gene_sets, c("#984EA3", "#4DAF4A"))
+print(file.path(OUTPUT_PATH))
 
 fwrite(
     all_pathways,
-    file = file.path(OUTPUT_DIR, "overlapping_pathways_all.tsv"),
+    file = file.path(OUTPUT_PATH),
     sep = "\t",
     col.names = TRUE,
     row.names = FALSE

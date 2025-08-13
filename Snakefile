@@ -266,6 +266,11 @@ rule compute_covariate_diff_indegrees:
             -o {params.output_dir}
         """
 
+def myfunc():
+    enrichment_file_list = []
+    enrichment_file_list.extend(expand(ENRICHMENT_RESULTS_RDATA, dataset_type=DATASET_NAMES))
+    return enrichment_file_list
+
 
 
 rule find_overlapping_pathways:
@@ -291,9 +296,9 @@ rule find_overlapping_pathways:
 
     """
     input:
-        pathways = BOTH_ENRICHMENT_RESULTS
+        pathways = expand(ENRICHMENT_RESULTS_RDATA, dataset_type=DATASET_NAMES)
     output:
-        OVERLAPPING_RESULTS_TSV #, \
+        overlap = OVERLAPPING_RESULTS_TSV #, \
         # OVERLAPPING_PATHWAYS_HEATMAP_PDF, \
         # SCATTERPLOT_PATHWAYS_PDF
       #  OVERLAPPING_VENN_PDF
@@ -301,15 +306,17 @@ rule find_overlapping_pathways:
         "; Overlapping the pathways"
     params:
         bin = os.path.join(config["bin"], "processing"), \
-        output_dir = os.path.join(BASE_OUTPUT_DIR, "overlapping_pathways")
+   #     output_dir = os.path.join(BASE_OUTPUT_DIR, "overlapping_pathways")
      
     shell:
         """
         echo "; I love snakemake more" ;
-        input_list=$(echo {input.pathways} | tr ' ' ',')
+        input_list=$(echo "{input.pathways}" | tr ' ' ',')
+        echo {input.pathways}
+        echo {output[0]}
         Rscript {params.bin}/overlap_pathways.R \
-            --pathways $input_list \
-            -o {params.output_dir}
+            -p $input_list \
+            -o {output.overlap}
          """
 
 # rule filter_indegrees_on_pathway:
