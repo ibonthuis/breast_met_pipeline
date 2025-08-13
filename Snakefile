@@ -55,13 +55,11 @@ PATHWAY_SPECIFIC_INDEGREES = os.path.join(PATHWAY_SPECIFIC_SUBSETS_DIR, "{datase
 #PATHWAY_SPECIFIC_INDEGREES_TSV = os.path.join(PATHWAY_SPECIFIC_SUBSETS_DIR, "{dataset_type}", "diff_indegrees_pathway_specific_genes.tsv")
 CORRECTED_TSV = os.path.join(LIMMA_COVARIATE_CORRECTION_DIR, "{dataset_type}", "corrected_tumor_purity_differential_indegrees.tsv")
 CORRECTED_RDATA = os.path.join(LIMMA_COVARIATE_CORRECTION_DIR, "{dataset_type}", "ranked_corrected_tumor_purity_differential_indegrees.RData")
-BOTH_ENRICHMENT_RESULTS = expand(ENRICHMENT_RESULTS_RDATA, dataset_type=DATASET_NAMES)
 
 ## Output plots ##
 PCA_PLOT_PDF = os.path.join(DIMENSIONALITY_REDUCTION_OUTPUT_DIR, "{dataset_type}", "PCA_{visualisation_var}_pc12.pdf") # In the R script it's written as follows:  pdf(pcaplot, file.path(OUTPUT_DIR, paste0("PCA", VARIABLE, "pc12.pdf")))
 ENRICHMENT_RESULTS_PDF = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "enrichment_bubble_plot_.pdf")
 
-print(','.join(expand(ENRICHMENT_RESULTS_RDATA, dataset_type=DATASET_NAMES)))
 
 
 def produce_rule_all():
@@ -265,12 +263,6 @@ rule compute_covariate_diff_indegrees:
             -c {params.covariate} \
             -o {params.output_dir}
         """
-
-def myfunc():
-    enrichment_file_list = []
-    enrichment_file_list.extend(expand(ENRICHMENT_RESULTS_RDATA, dataset_type=DATASET_NAMES))
-    return enrichment_file_list
-
 
 
 rule find_overlapping_pathways:
