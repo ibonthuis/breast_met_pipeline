@@ -55,16 +55,19 @@ PATHWAY_SPECIFIC_INDEGREES = os.path.join(PATHWAY_SPECIFIC_SUBSETS_DIR, "{datase
 #PATHWAY_SPECIFIC_INDEGREES_TSV = os.path.join(PATHWAY_SPECIFIC_SUBSETS_DIR, "{dataset_type}", "diff_indegrees_pathway_specific_genes.tsv")
 CORRECTED_TSV = os.path.join(LIMMA_COVARIATE_CORRECTION_DIR, "{dataset_type}", "corrected_tumor_purity_differential_indegrees.tsv")
 CORRECTED_RDATA = os.path.join(LIMMA_COVARIATE_CORRECTION_DIR, "{dataset_type}", "ranked_corrected_tumor_purity_differential_indegrees.RData")
-
+BOTH_ENRICHMENT_RESULTS = expand(ENRICHMENT_RESULTS_RDATA, dataset_type=DATASET_NAMES)
 
 ## Output plots ##
 PCA_PLOT_PDF = os.path.join(DIMENSIONALITY_REDUCTION_OUTPUT_DIR, "{dataset_type}", "PCA_{visualisation_var}_pc12.pdf") # In the R script it's written as follows:  pdf(pcaplot, file.path(OUTPUT_DIR, paste0("PCA", VARIABLE, "pc12.pdf")))
 ENRICHMENT_RESULTS_PDF = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "enrichment_bubble_plot_.pdf")
 
+print(','.join(expand(ENRICHMENT_RESULTS_RDATA, dataset_type=DATASET_NAMES)))
+
+
 def produce_rule_all():
     input_list = []
-    input_list.extend(expand(INPUT_METADATA, dataset_type = DATASET_NAMES))
-    input_list.extend(expand(INPUT_INDEGREES, dataset_type = DATASET_NAMES))
+    # input_list.extend(expand(INPUT_METADATA, dataset_type = DATASET_NAMES))
+    # input_list.extend(expand(INPUT_INDEGREES, dataset_type = DATASET_NAMES))
     input_list.extend(expand(DIFFERENTIAL_INDEGREES_RDATA, dataset_type = DATASET_NAMES))
     input_list.extend(expand(PCA_PLOT_PDF, dataset_type = DATASET_NAMES, visualisation_var = VIS_VAR))
     input_list.extend(expand(ENRICHMENT_RESULTS_RDATA, dataset_type = DATASET_NAMES))
@@ -77,6 +80,7 @@ def produce_rule_all():
     return input_list
 
 ## Rule ALL ##
+# Comment for myself: rule all will collect all the outputs of the other rules.  
 rule all:
     input:
         produce_rule_all()
@@ -123,6 +127,8 @@ rule compute_differential_indegrees:
         # correct_for_variable = CORRECTION_VAR
     shell:
         """
+        echo {input.metadata};
+        echo {input.indegrees}
         Rscript {params.bin}/compute_diff_indegrees.R \
             -i {input.indegrees} \
             -m {input.metadata} \
@@ -146,7 +152,7 @@ rule perform_dimensionality_reduction:
     PCA_PLOT_PDF:
         blablabla in pdf
 
-    """
+#     """
     input:
         metadata = INPUT_METADATA, \
         indegrees = INPUT_INDEGREES
@@ -285,7 +291,7 @@ rule find_overlapping_pathways:
 
     """
     input:
-        pathways = ','.join(expand(ENRICHMENT_RESULTS_RDATA, dataset_type=DATASET_NAMES))
+        pathways = BOTH_ENRICHMENT_RESULTS
     output:
         OVERLAPPING_RESULTS_TSV #, \
         # OVERLAPPING_PATHWAYS_HEATMAP_PDF, \
@@ -300,47 +306,47 @@ rule find_overlapping_pathways:
     shell:
         """
         echo "; I love snakemake more" ;
-        echo {input.pathways}
+        input_list=$(echo {input.pathways} | tr ' ' ',')
         Rscript {params.bin}/overlap_pathways.R \
-            --pathways {input.pathways} \
+            --pathways $input_list \
             -o {params.output_dir}
          """
 
-rule filter_indegrees_on_pathway:
-    """
-    This rule takes indegrees and one specific pathway as input and computes differential indegrees for that specific pathway.
+# rule filter_indegrees_on_pathway:
+#     """
+#     This rule takes indegrees and one specific pathway as input and computes differential indegrees for that specific pathway.
 
-    Inputs
-    ------
-    INPUT_METADATA:
-        Path to the metadata file containing sample information.
-    INPUT_INDEGREES:
-        Path to the file containing indegree data for analysis.
-    Outputs
-    -------
-    PATHWAY_SPECIFIC_INDEGREES:
-        Table or list of tables containing the indegrees with differential values between primary and metastasis. 
+#     Inputs
+#     ------
+#     INPUT_METADATA:
+#         Path to the metadata file containing sample information.
+#     INPUT_INDEGREES:
+#         Path to the file containing indegree data for analysis.
+#     Outputs
+#     -------
+#     PATHWAY_SPECIFIC_INDEGREES:
+#         Table or list of tables containing the indegrees with differential values between primary and metastasis. 
     
-    """
-    input:
-        metadata = INPUT_METADATA, \
-        indegrees = INPUT_INDEGREES
-    output:
-        PATHWAY_SPECIFIC_INDEGREES
-    message:
-        "; Running pathway specific indegree filtering."
-    params:
-        bin = os.path.join(config["bin"], "processing"), \
-        output_dir = os.path.join(BASE_OUTPUT_DIR, "pathway_specific_subsets", "{dataset_type}"), \
-        pathway = PATHWAY,
-        genes = GENE_SET_FILE
-    shell:
-        """
-        echo "; I love indegrees in snakemake" ;
-        Rscript {params.bin}/filter_indegrees_pathway_specific_genes.R \
-            -i {input.indegrees} \
-            -m {params.metadata} \
-            -p {params.pathway} \
-            -G {params.genes} \
-            -o {params.output_dir}
-        """
+#     """
+#     input:
+#         metadata = INPUT_METADATA, \
+#         indegrees = INPUT_INDEGREES, \
+#         genes = GENE_SET_FILE
+#     output:
+#         PATHWAY_SPECIFIC_INDEGREES
+#     message:
+#         "; Running pathway specific indegree filtering."
+#     params:
+#         bin = os.path.join(config["bin"], "processing"), \
+#         output_dir = os.path.join(BASE_OUTPUT_DIR, "pathway_specific_subsets", "{dataset_type}"), \
+#         pathway = PATHWAY
+#     shell:
+#         """
+#         echo "; I love indegrees in snakemake" ;
+#         Rscript {params.bin}/filter_indegrees_pathway_specific_genes.R \
+#             -i {input.indegrees} \
+#             -m {params.metadata} \
+#             -p {params.pathway} \
+#             -G {params.genes} \
+#             -o {params.output_dir}
+#         """
