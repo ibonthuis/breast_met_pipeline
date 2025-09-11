@@ -3,23 +3,26 @@ bin: "bin"
 container: "docker://cbgr/jaspar_curation_base:0.9.1"
 
 ## Input
-
 data_dir: "data/input_data"
 #types: ["aurora", "cosgrove"]
 types: ["aurora", "cosgrove"]
+metadata_name: "metadata.csv"
+indegree_input_name: "filtered_indegree.csv"
+#indegree_input_name: "filtered_expression.tsv"
+outdegree_input_name: "filtered_outdegrees.csv"
 
 gene_set_file: "data/gene_sets/c2.cp.reactome.v5.0.symbols.gmt"
 #gene_set_file: "data/gene_sets/gene_set.gmt"
-visualisation_var: "sample_type"
+visualisation_var: "tumor_site"
 #ranks: ""
 p_threshold: 0.05
 pathway_of_interest: "REACTOME_INTERFERON_SIGNALING"
 correction_variable_limma: "tumor_purity"
 nr_of_pathways: 10
-run_covariate_correction: False
+run_covariate_correction: False # for some reason the covariate correction doesn't want to run
 
 # cancer_type: ["breast", "prostate"]
 
 ## Results directory:
-output_dir: "snakemake_results_code_review_test_onecore_false"
+output_dir: "snakemake_results_covariate_with_robust"
 
