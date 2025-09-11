@@ -64,7 +64,17 @@ read_indegree <- function(indegree_file) {
 }
 
 
+filter_indegrees_by_pathway_of_interest <- function(indegree_df, genes_of_pathway_of_interest) {
+    filtered_indegrees <- indegree_df[rownames(indegree_df) %in% unlist(genes_of_pathway_of_interest), ]
+    return(filtered_indegrees)
+}
 
+make_longer <- function(one_row_df, data_type) {
+    one_row_df <- one_row_df %>%
+        pivot_longer(cols = colnames(one_row_df),
+                    names_to = "sample",
+                    values_to = data_type)
+}
 
 # read_indegree_if <- function(indegree_file) {
 #     indegrees <- ifelse(
