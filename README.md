@@ -2,6 +2,10 @@
 Pipeline to analyse breast cancer metastasis using networks
 
 
+## Folder structure 
+The folder structure right now is roughly like this. The bin folder contains all the scripts, the data folder all the input data. This one is a bit polluted with different inputs, but they can all be used when setting different options in the config file.
+The output of snakemake will always be like the folder "snakemake_results_codereview_10102025".
+
 ```
 breast_met_pipeline
 ├── bin
