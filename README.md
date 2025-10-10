@@ -88,3 +88,9 @@ breast_met_pipeline
 ├── README.md
 └── Snakefile
 ```
+
+
+## The workflow
+Automated DAG output:
+
+![method](https://github.com/ibonthuis/breast_met_pipeline/blob/initial_snake/dag.pdf)
