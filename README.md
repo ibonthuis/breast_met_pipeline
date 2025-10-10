@@ -93,4 +93,4 @@ breast_met_pipeline
 ## The workflow
 Automated DAG output:
 
-[![Workflow DAG](https://github.com/ibonthuis/breast_met_pipeline/blob/main/images/dag.png)](https://github.com/ibonthuis/breast_met_pipeline/blob/main/dag.pdf)
+[![Workflow DAG](https://github.com/ibonthuis/breast_met_pipeline/blob/main/dag.pdf)]
