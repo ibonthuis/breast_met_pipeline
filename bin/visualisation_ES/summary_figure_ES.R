@@ -111,7 +111,6 @@ all_gse_plot
 
 standard_colors
 
-PSEUDOBULK_NORM <- "/storage/kuijjerarea/ine/projects/BRCA_SINGLECELL_TO_PSEUDOBULK/celltype_specific_pseudobulks/snakemake_results_myeloid/myeloid/pseudobulk_normalized.tsv"
 
 
 pseudo_norm <- fread(PSEUDOBULK_NORM)
@@ -126,7 +125,6 @@ histnorm <- ggplot(pseudo_norm, aes(patient10_Primary_Myeloid)) +
 histnorm
 ncol(pseudo_norm)
 
-PSEUDOBULK <- "/storage/kuijjerarea/ine/projects/BRCA_SINGLECELL_TO_PSEUDOBULK/celltype_specific_pseudobulks/snakemake_results_50cells/Myeloid/pseudobulk_normalized.tsv"
 pseudobulk <- fread(PSEUDOBULK)
 head(pseudobulk)
 
