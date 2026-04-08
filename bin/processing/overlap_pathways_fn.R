@@ -32,7 +32,7 @@ merge_gsea_results <- function(gsea_results_multi, ds, column_to_merge) {
   if (length(gsea_results_list) < 2) {
     merged_gsea_results_df <- gsea_results_list[[1]]
   } else {
-    merged_gsea_results_df <- reduce(gsea_results_list, function(df1, df2) {
+    merged_gsea_results_df <- purrr::reduce(gsea_results_list, function(df1, df2) {
       merge(df1, df2, by = column_to_merge)
     })
   }
@@ -54,6 +54,57 @@ merge_all_pathways <- function(pathway_files, list_of_datasets, column_to_merge)
 }
 
 
+filter_by_sig_level_aur <- function(pathway_df, sig_level, dataset){
+  # pathway_df contains all pathways (so nrow 640)
+  #colnames_sig <- colnames(pathway_df)[grep("FDR|PADJ", colnames(pathway_df))]
+  # dataset either "AUR" or "COS"
+
+  regular_expression <- paste0("(FDR|PADJ).*", dataset, "|", dataset, ".*(FDR|PADJ)")
+  colnames_sig <- colnames(pathway_df)[grep(regular_expression, colnames(pathway_df))]
+# colnames_sig <- rlang::syms(colnames_sig)
+  col1 <- data_sym(colnames_sig[[1]])
+  col2 <- data_sym(colnames_sig[[2]])
+  col3 <- data_sym(colnames_sig[[3]])
+  col4 <- data_sym(colnames_sig[[4]]) 
+  col5 <- data_sym(colnames_sig[[5]])
+  pathway_df <- pathway_df %>%
+   dplyr::filter(col1 <= sig_level &  col2 <= sig_level & col3 <= sig_level & col4 <= sig_level & col5 <= sig_level) %>%
+   #dplyr::filter(!!data_sym(colnames_sig[[1]]) <= sig_level)
+    dplyr::filter(ES_AUR1 < 0)
+    return(pathway_df)
+}
+
+
+filter_by_sig_level_cos <- function(pathway_df, sig_level, dataset) {
+  regular_expression <- paste0("(FDR|PADJ).*", dataset, "|", dataset, ".*(FDR|PADJ)")
+  colnames_sig <- colnames(pathway_df)[grep(regular_expression, colnames(pathway_df))]
+  pathway_df <- pathway_df %>%
+    filter(!!rlang::sym(colnames_sig[1]) <= sig_level) %>%
+    filter(ES_COS1 < 0)
+  return(pathway_df)
+}
+
+filter_by_sig_level <- function(pathway_df, sig_level, dataset){
+  if(dataset == "AUR"){
+    filtered_df <- filter_by_sig_level_aur(pathway_df, sig_level, dataset)
+  } else {
+    filtered_df <- filter_by_sig_level_cos(pathway_df, sig_level, dataset)
+  }
+  return(filtered_df)
+}
+
+venn_plot <- function(gene_sets, colors) {
+ venn <- ggvenn(gene_sets, c(names(gene_sets)[1], names(gene_sets)[2]), 
+        fill_color = c(colors[1], colors[2]),
+        set_name_size = 8,
+        text_size = 12,
+        show_percentage = FALSE,
+        auto_scale = TRUE
+        )
+  return(venn)
+}
+
+# !!rlang::sym(colnames_sig[1]) <= sig_level & !!rlang::sym(colnames_sig[2]) <= sig_level & !!rlang::sym(colnames_sig[3]) <= sig_level & !!rlang::sym(colnames_sig[4]) <= sig_level & !!rlang::sym(colnames_sig[5]) <= sig_level & !!rlang::sym(colnames_sig[6]) <= sig_level ~ "all",
 # #' Merge All Pathways
 # #'
 # #' This function merges pathway results from two different sources. It first checks if the inputs are lists and, if so, processes them using the `merge_gsea_results` function. Then, it merges the processed results across datasets using the `merge_pathway_results_across_datasets` function.

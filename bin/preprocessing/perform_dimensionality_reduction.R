@@ -4,7 +4,8 @@ required_libraries <- c(
     "dplyr",
     "optparse",
     "rlang",
-    "ggplot2")
+    "ggplot2",
+    "ggrepel")
 
 for (lib in required_libraries) {
   suppressPackageStartupMessages(library(lib, character.only = TRUE, quietly = TRUE))
@@ -66,6 +67,14 @@ dir.create(OUTPUT_DIR, showWarnings = FALSE, recursive = TRUE)
 ## Dimensionality reduction
 indegree_df <- read_indegree(INDEGREES_FILE)
 metadata_df <- fread(METADATA_FILE)
+
+if (ncol(indegree_df) < 100) {
+    print(paste0("indegree_df has less than 100 columns"))
+    # metadata_df <- metadata_df %>%
+    #     filter(sample_type == "Metastasis")
+}
+
+# Comment out the following for pseudobulks.
 metadata_df <- match_metadata_order_with_df(metadata_df, indegree_df)
 
 ## Plotting
@@ -82,8 +91,28 @@ the_theme <- ggplot2::theme_set(
             
         )
 )
+print(nrow(indegree_df))
+indegree_df <- indegree_df[!rowSums(indegree_df) == 0,]
+print(nrow(indegree_df))
+
+#head(metadata_df)
+# var <- ensym(VARIABLE)
+# TOPRINT <- metadata_df$var
+# print(class(TOPRINT))
+print(VARIABLE)
+#print(class(VARIABLE))
+
+values <- metadata_df[[VARIABLE]]
+print(class(values))
 pca <- do_pca(indegree_df)
-pcaplot <- plot_12_discrete(pca, metadata_df, VARIABLE)
+
+
+if(is.integer(values) == TRUE) {
+   pcaplot <- pca_visualize_continuous(pca, metadata_df, VARIABLE)
+} else {
+   pcaplot <- plot_12_discrete(pca, metadata_df, VARIABLE)
+}
+
 
 ## Exporting
 pdf( 

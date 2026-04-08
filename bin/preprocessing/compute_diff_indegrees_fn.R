@@ -152,7 +152,7 @@ run_limma <- function(indegree_df, metadata, covariates, type_col) {
   contrasts <- limma::makeContrasts(prim_vs_met = sample_typePrimary - sample_typeMetastasis, levels = design)
   fit <- lmFit(indegree_df, design)
   fit2 <- contrasts.fit(fit, contrasts)
-  fit2 <- eBayes(fit2)
+  fit2 <- eBayes(fit2) # remove robust argument if necessary , robust = TRUE
   toptable <- limma::topTable(fit2, coef = "prim_vs_met", number = Inf)
   #toptable <- toptable[order(row.names(toptable)), ]
 # head(toptable, n = 10)

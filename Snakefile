@@ -22,15 +22,21 @@ configfile: CONFIG_PATH
 DATA_DIR = config["data_dir"]
 DATASET_NAMES = config["types"]
 BASE_OUTPUT_DIR = config["output_dir"]
+METADATA_NAME = config["metadata_name"]
+INDEGREE_NAME = config["indegree_input_name"]
+OUTDEGREE_NAME = config["outdegree_input_name"]
 DIFFERENTIAL_INDEGREE_OUTPUT_DIR = os.path.join(BASE_OUTPUT_DIR, "differential_indegrees")
+DIFFERENTIAL_OUTDEGREES_OUTPUT_DIR = os.path.join(BASE_OUTPUT_DIR, "differential_outdegrees")
 LIMMA_COVARIATE_CORRECTION_DIR = os.path.join(BASE_OUTPUT_DIR, "limma_covariate_correction")
 DIMENSIONALITY_REDUCTION_OUTPUT_DIR = os.path.join(BASE_OUTPUT_DIR, "dimensionality_reduction")
 OVERLAPPING_PATHWAYS_DIR = os.path.join(BASE_OUTPUT_DIR, "overlapping_pathways")
 PATHWAY_SPECIFIC_SUBSETS_DIR = os.path.join(BASE_OUTPUT_DIR, "pathway_specific_subsets")
 
 ## Input files ##
-INPUT_METADATA = os.path.join(DATA_DIR, "{dataset_type}", "metadata.csv")
-INPUT_INDEGREES = os.path.join(DATA_DIR, "{dataset_type}", "filtered_indegree.csv")
+INPUT_METADATA = os.path.join(DATA_DIR, "{dataset_type}", METADATA_NAME)
+INPUT_INDEGREES = os.path.join(DATA_DIR, "{dataset_type}", INDEGREE_NAME)
+INPUT_OUTDEGREES = os.path.join(DATA_DIR, "{dataset_type}", OUTDEGREE_NAME)
+#INPUT_INDEGREES = os.path.join(DATA_DIR, "{dataset_type}", "filtered_expression.tsv")
 GENE_SET_FILE = config["gene_set_file"]
 
 ## Other inputs ##
@@ -44,33 +50,50 @@ NR_PATHWAYS = config["nr_of_pathways"]
 # DIFFERENTIAL_INDEGREES_TAB = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "differential_indegrees.tsv")
 DIFFERENTIAL_INDEGREES_RDATA = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "differential_indegrees.RData")
 DIFFERENTIAL_INDEGREES_RANKED_RDATA = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "differential_indegrees_rank_file.RData")
+DIFFERENTIAL_OUTDEGREES_RDATA = os.path.join(DIFFERENTIAL_OUTDEGREES_OUTPUT_DIR, "{dataset_type}", "differential_outdegrees.RData")
+DIFFERENTIAL_OUTDEGREES_RANKED_RDATA = os.path.join(DIFFERENTIAL_OUTDEGREES_OUTPUT_DIR, "{dataset_type}", "differential_outdegrees_rank_file.RData")
 COVARIATE_CORRECTED_DIFF_INDEGREES_RDATA = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "covariate_corr_differential_indegrees.RData")
 COVARIATE_CORRECTED_DIFF_INDEGREES_RANKED_RDATA = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "covariate_corr_differential_indegrees_rank_file.RData")
 ENRICHMENT_RESULTS_RDATA = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "differential_genesets.RData")
 ENRICHMENT_RESULTS_TSV = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "differential_genesets.tsv")
 OVERLAPPING_RESULTS_TSV = os.path.join(OVERLAPPING_PATHWAYS_DIR, "overlapping_pathways_all.tsv")
+OVERLAPPING_VENN_PDF = os.path.join(OVERLAPPING_PATHWAYS_DIR, "overlapping_pathways_metastasis.pdf")
 PATHWAY_SPECIFIC_INDEGREES = os.path.join(PATHWAY_SPECIFIC_SUBSETS_DIR, "{dataset_type}", "diff_indegrees_pathway_specific_genes.RData")
 #PATHWAY_SPECIFIC_INDEGREES_TSV = os.path.join(PATHWAY_SPECIFIC_SUBSETS_DIR, "{dataset_type}", "diff_indegrees_pathway_specific_genes.tsv")
 CORRECTED_TSV = os.path.join(LIMMA_COVARIATE_CORRECTION_DIR, "{dataset_type}", "corrected_tumor_purity_differential_indegrees.tsv")
 CORRECTED_RDATA = os.path.join(LIMMA_COVARIATE_CORRECTION_DIR, "{dataset_type}", "ranked_corrected_tumor_purity_differential_indegrees.RData")
+PATHWAY_SPECIFIC_OUTDEGREES_TSV = os.path.join(PATHWAY_SPECIFIC_SUBSETS_DIR, "{dataset_type}", "outdegrees_pathway_oi.tsv")
 
 
 ## Output plots ##
 PCA_PLOT_PDF = os.path.join(DIMENSIONALITY_REDUCTION_OUTPUT_DIR, "{dataset_type}", "PCA_{visualisation_var}_pc12.pdf") # In the R script it's written as follows:  pdf(pcaplot, file.path(OUTPUT_DIR, paste0("PCA", VARIABLE, "pc12.pdf")))
 ENRICHMENT_RESULTS_PDF = os.path.join(DIFFERENTIAL_INDEGREE_OUTPUT_DIR, "{dataset_type}", "enrichment_bubble_plot_.pdf")
+OUTDEGREES_PAIRED_PLOT_PDF = os.path.join(PATHWAY_SPECIFIC_SUBSETS_DIR, "{dataset_type}", "outdegrees_pathway_paired_plot.pdf")
+
+
+def produce_rule_all():
+    input_list = []
+    # input_list.extend(expand(INPUT_METADATA, dataset_type = DATASET_NAMES))
+    # input_list.extend(expand(INPUT_INDEGREES, dataset_type = DATASET_NAMES))
+    input_list.extend(expand(DIFFERENTIAL_INDEGREES_RDATA, dataset_type = DATASET_NAMES))
+    input_list.extend(expand(DIFFERENTIAL_OUTDEGREES_RDATA, dataset_type = DATASET_NAMES))
+    input_list.extend(expand(PCA_PLOT_PDF, dataset_type = DATASET_NAMES, visualisation_var = VIS_VAR))
+    input_list.extend(expand(ENRICHMENT_RESULTS_RDATA, dataset_type = DATASET_NAMES))
+    input_list.extend(expand(ENRICHMENT_RESULTS_TSV, dataset_type = DATASET_NAMES))
+    input_list.extend(expand(ENRICHMENT_RESULTS_PDF, dataset_type = DATASET_NAMES))
+    input_list.append(OVERLAPPING_RESULTS_TSV)
+    input_list.append(expand(PATHWAY_SPECIFIC_OUTDEGREES_TSV, dataset_type = DATASET_NAMES))
+    if config["run_covariate_correction"]:
+        input_list.extend(expand(CORRECTED_TSV, dataset_type = DATASET_NAMES))
+        input_list.extend(expand(CORRECTED_RDATA, dataset_type = DATASET_NAMES))
+    return input_list
 
 ## Rule ALL ##
+# Comment for myself: rule all will collect all the outputs of the other rules.  
 rule all:
     input:
-        expand(DIFFERENTIAL_INDEGREES_RDATA, dataset_type = DATASET_NAMES), \
-        expand(PCA_PLOT_PDF, dataset_type = DATASET_NAMES, visualisation_var = VIS_VAR), \
-        expand(ENRICHMENT_RESULTS_RDATA, dataset_type = DATASET_NAMES),\
-        expand(ENRICHMENT_RESULTS_TSV, dataset_type = DATASET_NAMES), \
-        expand(ENRICHMENT_RESULTS_PDF, dataset_type = DATASET_NAMES), \
-        expand(CORRECTED_TSV, dataset_type = DATASET_NAMES), \
-        expand(CORRECTED_RDATA, dataset_type = DATASET_NAMES), \
-        OVERLAPPING_RESULTS_TSV
-
+        produce_rule_all()
+    #    OVERLAPPING_VENN_PDF
         
 
 ## Rules ##
@@ -93,8 +116,11 @@ rule compute_differential_indegrees:
         blablabla in RData
     """
     input:
+        # metadata = expand(INPUT_METADATA, data_type = "{dataset_type}"), \
+        # indegrees = expand(INPUT_INDEGREES, data_type = "{dataset_type}")
         metadata = INPUT_METADATA, \
         indegrees = INPUT_INDEGREES
+
     output:
         # DIFFERENTIAL_INDEGREES_TAB, \
         DIFFERENTIAL_INDEGREES_RDATA, \
@@ -110,11 +136,36 @@ rule compute_differential_indegrees:
         # correct_for_variable = CORRECTION_VAR
     shell:
         """
+        echo {input.metadata};
+        echo {input.indegrees}
         Rscript {params.bin}/compute_diff_indegrees.R \
             -i {input.indegrees} \
             -m {input.metadata} \
             -o {params.output_dir}
         """
+    
+
+rule compute_differential_outdegrees:
+    """
+    Do the same thing as in rule compute_differential_indegrees but then with outdegrees.
+    """
+    input:
+        metadata = INPUT_METADATA, \
+        outdegrees = INPUT_OUTDEGREES
+    output:
+        DIFFERENTIAL_OUTDEGREES_RDATA, \
+        DIFFERENTIAL_OUTDEGREES_RANKED_RDATA
+    params:
+        bin = os.path.join(config["bin"], "preprocessing"), \
+        output_dir = os.path.join(BASE_OUTPUT_DIR, "differential_outdegrees", "{dataset_type}")
+    shell:
+        """
+        Rscript {params.bin}/compute_diff_outdegrees.R \
+            -i {input.outdegrees} \
+            -m {input.metadata} \
+            -o {params.output_dir}
+        """
+    
 
 rule perform_dimensionality_reduction:
     """
@@ -133,7 +184,7 @@ rule perform_dimensionality_reduction:
     PCA_PLOT_PDF:
         blablabla in pdf
 
-    """
+#     """
     input:
         metadata = INPUT_METADATA, \
         indegrees = INPUT_INDEGREES
@@ -141,8 +192,6 @@ rule perform_dimensionality_reduction:
         PCA_PLOT_PDF
     message:
         "; Running dimensionality reduction of indegrees on {input}."
-    container:
-        config["container"]
     params:
         bin = os.path.join(config["bin"], "preprocessing"), \
         output_dir = os.path.join(BASE_OUTPUT_DIR, "dimensionality_reduction", "{dataset_type}"), \
@@ -150,6 +199,8 @@ rule perform_dimensionality_reduction:
       #  dataset_type = "{dataset_type}"
     shell:
         """
+
+
         Rscript {params.bin}/perform_dimensionality_reduction.R \
             -i {input.indegrees} \
             -m {input.metadata} \
@@ -177,6 +228,8 @@ rule run_gsea_on_ranks:
     """
     input:
         #ranks = COVARIATE_CORRECTED_DIFF_INDEGREES_RANKED_RDATA
+        ranks = DIFFERENTIAL_INDEGREES_RANKED_RDATA, \
+        genes = GENE_SET_FILE
     output:
         # rdata = expand(ENRICHMENT_RESULTS_RDATA, dataset_type="{dataset_type}"), \
         # pdf = expand(ENRICHMENT_RESULTS_PDF, dataset_type="{dataset_type}")
@@ -188,16 +241,14 @@ rule run_gsea_on_ranks:
     params:
         bin = os.path.join(config["bin"], "preprocessing"), \
         output_dir = os.path.join(BASE_OUTPUT_DIR, "differential_indegrees", "{dataset_type}"), \
-        p_threshold = P_THRESH,
-        genes = GENE_SET_FILE,
-        ranks = DIFFERENTIAL_INDEGREES_RANKED_RDATA,
+        p_threshold = P_THRESH, \
         nr_pathways = NR_PATHWAYS
     shell:
         """
         echo "; I love snakemake" ;
         Rscript {params.bin}/compute_gse.R \
-            -i {params.ranks} \
-            -g {params.genes} \
+            -i {input.ranks} \
+            -g {input.genes} \
             -p {params.p_threshold} \
             -n {params.nr_pathways} \
             -o {params.output_dir}
@@ -235,19 +286,47 @@ rule compute_covariate_diff_indegrees:
     params:
         bin = os.path.join(config["bin"], "preprocessing"),
         output_dir = os.path.join(LIMMA_COVARIATE_CORRECTION_DIR, "{dataset_type}"),
-
         covariate = CORRECTION_VAR
-    run:
-        if config["run_covariate_correction"]:
-            shell("""
-                Rscript {params.bin}/compute_covariate_diff_indegrees.R \
-                    -i {input.indegrees} \
-                    -m {input.metadata} \
-                    -c {params.covariate} \
-                    -o {params.output_dir}
-            """)
-        else:
-            print("Skipping covariate correction as per configuration.")
+    shell:
+        """
+        echo "; I love snakemake" ;
+        Rscript {params.bin}/compute_covariate_diff_indegrees.R \
+            -i {input.indegrees} \
+            -m {input.metadata} \
+            -c {params.covariate} \
+            -o {params.output_dir}
+        """
+
+rule filter_outdegrees_on_pathway:
+    """
+    This rule takes the differential outdegrees, subsets them for the ones in a pathway of interest (e.g. interferon signaling pathway) and outputs them in a table. Possibly also a plot. If there is like less than 8 TFs, it can be a boxplot. Like a paired plot? Let's find out
+    """
+    input:
+        outdegrees = INPUT_OUTDEGREES, \
+        diff_outdegrees = DIFFERENTIAL_OUTDEGREES_RDATA, \
+        metadata = INPUT_METADATA, \
+        genes = GENE_SET_FILE
+    output:
+        PATHWAY_SPECIFIC_OUTDEGREES_TSV, \
+        OUTDEGREES_PAIRED_PLOT_PDF
+    params:
+        bin = os.path.join(config["bin"], "processing"), \
+        output_dir = os.path.join(BASE_OUTPUT_DIR, "pathway_specific_subsets", "{dataset_type}"), \
+        pathway = PATHWAY
+    message:
+        "; filtering pathway-specific outdegrees"
+    shell:
+        """
+        echo {output[0]}
+        Rscript {params.bin}/subset_outdegrees_based_on_pathway.R \
+            -i {input.outdegrees} \
+            -d {input.diff_outdegrees} \
+            -g {input.genes} \
+            -m {input.metadata} \
+            -p {params.pathway} \
+            -o {params.output_dir}
+        """
+
 
 
 rule find_overlapping_pathways:
@@ -273,60 +352,64 @@ rule find_overlapping_pathways:
 
     """
     input:
+        pathways = expand(ENRICHMENT_RESULTS_RDATA, dataset_type=DATASET_NAMES)
     output:
-        OVERLAPPING_RESULTS_TSV #, \
+        overlap = OVERLAPPING_RESULTS_TSV #, \
         # OVERLAPPING_PATHWAYS_HEATMAP_PDF, \
         # SCATTERPLOT_PATHWAYS_PDF
+      #  OVERLAPPING_VENN_PDF
     message:
         "; Overlapping the pathways"
     params:
-        bin = os.path.join(config["bin"], "processing"), \
-        output_dir = os.path.join(BASE_OUTPUT_DIR, "overlapping_pathways"), \
-        pathways = expand(ENRICHMENT_RESULTS_RDATA, dataset_type=DATASET_NAMES)
+        bin = os.path.join(config["bin"], "processing")#, \
+   #     output_dir = os.path.join(BASE_OUTPUT_DIR, "overlapping_pathways")
+     
     shell:
         """
         echo "; I love snakemake more" ;
-        echo {params.pathways}
+        input_list=$(echo "{input.pathways}" | tr ' ' ',')
+        echo {input.pathways}
+        echo {output[0]}
         Rscript {params.bin}/overlap_pathways.R \
-            -i {params.pathways} \
-            -o {params.output_dir}
+            -p $input_list \
+            -o {output.overlap}
          """
 
-rule filter_indegrees_on_pathway:
-    """
-    This rule takes indegrees and one specific pathway as input and computes differential indegrees for that specific pathway.
+# rule filter_indegrees_on_pathway:
+#     """
+#     This rule takes indegrees and one specific pathway as input and computes differential indegrees for that specific pathway.
 
-    Inputs
-    ------
-    INPUT_METADATA:
-        Path to the metadata file containing sample information.
-    INPUT_INDEGREES:
-        Path to the file containing indegree data for analysis.
-    Outputs
-    -------
-    PATHWAY_SPECIFIC_INDEGREES:
-        Table or list of tables containing the indegrees with differential values between primary and metastasis. 
+#     Inputs
+#     ------
+#     INPUT_METADATA:
+#         Path to the metadata file containing sample information.
+#     INPUT_INDEGREES:
+#         Path to the file containing indegree data for analysis.
+#     Outputs
+#     -------
+#     PATHWAY_SPECIFIC_INDEGREES:
+#         Table or list of tables containing the indegrees with differential values between primary and metastasis. 
     
-    """
-    input:
-        metadata = INPUT_METADATA, \
-        indegrees = INPUT_INDEGREES
-    output:
-        PATHWAY_SPECIFIC_INDEGREES
-    message:
-        "; Running pathway specific indegree filtering."
-    params:
-        bin = os.path.join(config["bin"], "processing"), \
-        output_dir = os.path.join(BASE_OUTPUT_DIR, "pathway_specific_subsets", "{dataset_type}"), \
-        pathway = PATHWAY,
-        genes = GENE_SET_FILE
-    shell:
-        """
-        echo "; I love indegrees in snakemake" ;
-        Rscript {params.bin}/filter_indegrees_pathway_specific_genes.R \
-            -i {input.indegrees} \
-            -m {params.metadata} \
-            -p {params.pathway} \
-            -G {params.genes} \
-            -o {params.output_dir}
-        """
+#     """
+#     input:
+#         metadata = INPUT_METADATA, \
+#         indegrees = INPUT_INDEGREES, \
+#         genes = GENE_SET_FILE
+#     output:
+#         PATHWAY_SPECIFIC_INDEGREES
+#     message:
+#         "; Running pathway specific indegree filtering."
+#     params:
+#         bin = os.path.join(config["bin"], "processing"), \
+#         output_dir = os.path.join(BASE_OUTPUT_DIR, "pathway_specific_subsets", "{dataset_type}"), \
+#         pathway = PATHWAY
+#     shell:
+#         """
+#         echo "; I love indegrees in snakemake" ;
+#         Rscript {params.bin}/filter_indegrees_pathway_specific_genes.R \
+#             -i {input.indegrees} \
+#             -m {params.metadata} \
+#             -p {params.pathway} \
+#             -G {params.genes} \
+#             -o {params.output_dir}
+#         """

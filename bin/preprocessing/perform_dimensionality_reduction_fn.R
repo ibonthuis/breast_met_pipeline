@@ -128,18 +128,28 @@ plot_12_discrete <- function(pca, metadata_df, to_visualize) { # To do: incorpor
 #'
 #' @import ggplot2
 #' @import rlang
-pca_visualize_continuous <- function(pca, to_visualize){
+pca_visualize_continuous <- function(pca, metadata_df, to_visualize){
     # to_visualize must be the name of a column to visualize
     merged <- merge_pca_met(pca, metadata_df)
+    print(colnames(merged))
+    to_visualize <- rlang::sym(to_visualize)
+    merged <- merged %>%
+        mutate(cellnr_label = case_when(
+            !!to_visualize < 130 ~ Var1,
+            TRUE ~ ""
+    ))
     summ <- summary(pca)
     summ <- as.data.frame(summ$importance)
     pc1_label <- paste("PC1", sprintf("%0.1f%%", summ[2, 1]*100), sep = " ")
     pc2_label <- paste("PC2", sprintf("%0.1f%%", summ[2, 2]*100), sep = " ")
     to_visualize <- rlang::sym(to_visualize)
-    pc_plot <- ggplot(merged, aes(x = PC1, y = PC2)) +
+    pc_plot <- ggplot(merged, aes(x = PC1, y = PC2, label = cellnr_label)) +
         geom_point(aes(color = !!to_visualize), size = 3)+
         xlab(pc1_label)+
         ylab(pc2_label)+
-        scale_color_gradient(to_visualize)
+       # scale_color_gradient(to_visualize)+
+        # een scale waarin je lager dan 100 beter kan zien:
+        scale_colour_gradient(limits = c(0, 500), oob = scales::squish)+
+        geom_text_repel()
     return(pc_plot)
 }

@@ -28,6 +28,14 @@ perform_gsea <- function(diff_results, gene_set) {
   return(fgseaRes)
 }
 
+# function to format pathway names for bubble plot
+
+format_pathway_name <- function(gsea_result) {
+  gsea_result$pathway <- gsub("_", " ", gsea_result$pathway)
+  gsea_result$pathway <- gsub("REACTOME", "", gsea_result$pathway)
+  return(gsea_result)
+}
+
 
 #' Plot Bubble Plot for GSEA Results
 #'
@@ -52,12 +60,13 @@ plot_bubble_plot <- function(gsea_result, blues, nr_of_pathways) {
   gsea_result <- as.data.frame(gsea_result)
   # gsea_result <- gsea_result %>%
   #                   mutate(log_padj = log(padj))
+  gsea_result <- format_pathway_name(gsea_result)
   gsea_result <- gsea_result %>%
-                  mutate(log_padj = -log(padj)) %>%
+                  mutate(log_padj = -log10(padj)) %>%
                   dplyr::arrange(desc(log_padj), )
   gsea_result <- gsea_result[1:nr_of_pathways, ]
     gsea_result <- gsea_result %>%
-                  dplyr::arrange(log_padj, )
+                  dplyr::arrange(log_padj, ) # desc if prefered
   gsea_result$pathway <- factor(gsea_result$pathway, levels = gsea_result$pathway)
   #gsea_result <- gsea_result[1:nr_of_pathways, ]
 
@@ -65,10 +74,10 @@ plot_bubble_plot <- function(gsea_result, blues, nr_of_pathways) {
           geom_point(shape=21, fg="grey")+ 
           scale_size_area(max_size=10)+
           scale_fill_gradient2(high = "red", mid = "white", low = blues[length(blues)])+
-          theme(text = element_text(size = 20), axis.text.y = element_text(size = 14), axis.title.y = element_blank()
+          theme(text = element_text(size = 20), axis.text.y = element_text(size = 20), axis.title.y = element_blank()
           #axis.title.x = element_text(size = 16)
           )+
-          xlab("-log(FDR)")
+          xlab("-log10(adj. p-value)")
   return(g)
 }
 
@@ -82,8 +91,14 @@ merge_enriched_pathways_list_into_df <- function(gsea_results_list, column_to_me
   })
 
   merged_gsea_results <- purrr::reduce(gsea_results_list, function(df1, df2) {
-    merge(df1, df2, by = column_to_merge)
+    merge(df1, df2, by = column_to_merge, all = TRUE)
   })
   
   return(merged_gsea_results)
 }
+
+filter_na <- function(gsea_results_list) {
+  gsea_results_list <- gsea_results_list %>%
+    filter(!is.na(pathway))
+}
+
